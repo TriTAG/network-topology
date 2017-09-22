@@ -1,3 +1,4 @@
+"""Module for creating a simplified graph from a set of linestrings."""
 
 import networkx as nx
 from triangle import triangulate
@@ -8,11 +9,11 @@ from itertools import combinations
 import numpy as np
 import random
 from rtree import index
-from pprint import pprint
 
 
 def getNetworkTopology(lineStrings, thickness=14.0, splitAtTeriminals=False,
                        turnThreshold=20.0, minInnerPerimeter=200):
+    """Generate a bidirectional graph of the topology created by the lines."""
     # Make buffered shape
     big_shape = _makeBufferedShape(lineStrings, thickness, minInnerPerimeter)
     triangles = _triangulate(big_shape, lineStrings, minInnerPerimeter)
@@ -21,8 +22,9 @@ def getNetworkTopology(lineStrings, thickness=14.0, splitAtTeriminals=False,
     _tidyIntersections(poly_graph, triangles, polygons)
     skel_graph = _buildSkeletonGraph(poly_graph, triangles, polygons)
     if splitAtTeriminals:
-        _splitAtTerminals(skel_graph, lineStrings)
-    graph = _findSegmentsAndIntersections(skel_graph, turnThreshold)
+        _insertAtTerminals(skel_graph, lineStrings)
+    graph = _simplifyGraph(skel_graph, turnThreshold)
+    # _findSegmentsAndIntersections(skel_graph, turnThreshold)
     return graph
 
 
@@ -30,12 +32,12 @@ def _makeBufferedShape(lineStrings, thickness=14.0, minInnerPerimeter=200):
     bufferedShapes = []
     buf = thickness / 2.0
     for ls in lineStrings:
-        bufferedShapes.append(ls.buffer(buf, resolution=2, join_style=2))  # cap_style=3
+        bufferedShapes.append(ls.buffer(buf, resolution=2, join_style=3))
     big_shape = cascaded_union(bufferedShapes)
     filled_shape = Polygon(big_shape.exterior.coords,
                            [ring.coords for ring in big_shape.interiors
                             if ring.length > minInnerPerimeter])
-    return filled_shape.simplify(thickness/10.0)  # prep(filled_shape.buffer(-0.1))
+    return filled_shape.simplify(thickness/10.0)
 
 
 def _triangulate(big_shape, lineStrings, minInnerPerimeter=200):
@@ -85,7 +87,7 @@ def _triangulate(big_shape, lineStrings, minInnerPerimeter=200):
 
 
 def _polygonize(res, big_shape):
-    prepped_shape = prep(big_shape.buffer(-0.1, cap_style=3, join_style=2))
+    prepped_shape = prep(big_shape.buffer(-0.1))
     polys = [list(vs) for vs in res['triangles']]
     for v, (x, y) in enumerate(res['vertices']):
         # remove any point that is internal to the shape, merging triangles
@@ -103,6 +105,8 @@ def _polygonize(res, big_shape):
                     if vs[0] != v and last_pt != v:
                         shape_graph.add_edge(last_pt, vs[0])
             poly = []
+            if not shape_graph.nodes():
+                continue
             pt = shape_graph.nodes()[0]
             while pt not in poly:
                 poly.append(pt)
@@ -180,7 +184,8 @@ def _tidyIntersections(TG, res, polys):
     for node in TG.nodes_iter():
         if TG.degree(node) == 3 and len(polys[node]) == 3:
             points = res['vertices'][polys[node]]
-            A = np.array([[p[0]*p[0] + p[1]*p[1], p[0], p[1], 1] for p in points])
+            A = np.array([[p[0]*p[0] + p[1]*p[1], p[0], p[1], 1]
+                          for p in points])
             M11 = np.linalg.det(A[:, [1, 2, 3]])
             M12 = np.linalg.det(A[:, [0, 2, 3]])
             M13 = np.linalg.det(A[:, [0, 1, 3]])
@@ -223,12 +228,19 @@ def _makeKey(t1, t2):
     return int(t1 * 1e9 + t2)
 
 
-def _insertEdge(G, n1, n2):
+def _normalVector(G, n1, n2):
     ux = G.node[n1]['x'] - G.node[n2]['x']
     uy = G.node[n1]['y'] - G.node[n2]['y']
-    dist = np.sqrt(ux*ux + uy*uy)
+    dist = max(np.sqrt(ux*ux + uy*uy), 1e-18)
     ux /= dist
     uy /= dist
+    return ux, uy
+
+
+def _insertEdge(G, n1, n2):
+    if n1 == n2:
+        return
+    ux, uy = _normalVector(G, n1, n2)
     G.add_edge(n1, n2, ux=ux, uy=uy)
 
 
@@ -269,7 +281,7 @@ def _buildSkeletonGraph(TG, res, polys):
     return G
 
 
-def _splitAtTerminals(G, lineStrings):
+def _insertAtTerminals(G, lineStrings):
     node_idx = G.graph['index']
     for lid, ls in enumerate(lineStrings):
         for i in [0, -1]:
@@ -280,76 +292,44 @@ def _splitAtTerminals(G, lineStrings):
             _insertEdge(G, pid, nearest)
 
 
-def _findSegmentsAndIntersections(G, turnThreshold=20.0):
-    junctions = []
-    midpts = []
-    threshold = np.cos(turnThreshold/180.0*np.pi)  # np.sqrt(0.5)
-    dps = []
+def _simplifyGraph(G, turnThreshold=20.0):
+    DG = nx.MultiDiGraph()
+    threshold = np.cos(turnThreshold/180.0*np.pi)
     for node in G.nodes_iter():
-        if len(G[node]) > 2 or len(G[node]) == 1:
-            junctions.append(node)
-        elif len(G[node]) == 2:
-            ux = []
-            uy = []
-            for edge, data in G[node].iteritems():
-                ux.append(data['ux'])
-                uy.append(data['uy'])
-            dp = np.abs(ux[0] * ux[1] + uy[0] * uy[1])
-            dps.append(dp)
-            if dp < threshold:
-                junctions.append(node)
-            else:
-                midpts.append(node)
-    segments = list(nx.connected_components(G.subgraph(midpts)))
-    BG = nx.blockmodel(G, segments+[[j] for j in junctions])
-
-    lines = []
-    ids = []
+        if node not in DG:
+            DG.add_node(node)
+        if len(G[node]) == 2:
+            normals = []
+            for neighbour in G[node]:
+                n = _normalVector(G, node, neighbour)
+                normals.append(n)
+            dp = -(normals[0][0] * normals[1][0] +
+                   normals[0][1] * normals[1][1])
+            DG.node[node]['turn'] = dp < threshold
+        for neighbour in G[node]:
+            DG.add_edge(node, neighbour, nnodes=[node, neighbour])
     to_remove = []
-    for node, data in BG.nodes_iter(data=True):
-        if data['nnodes'] == 1:
-            p = G.node[data['graph'].nodes()[0]]
-            data['geom'] = Point(p['x'], p['y'])
+    for node in DG.nodes_iter():
+        if len(DG.edges(node)) == 2 and not DG.node[node]['turn'] and node not in DG.neighbors(node):
+            (x, n1), (x, n2) = DG.edges(node)
+            seq = DG[n1][node][0]['nnodes'] + DG[node][n2][0]['nnodes'][1:]
+            DG.add_edge(n1, n2, nnodes=seq)
+            DG.add_edge(n2, n1, nnodes=list(reversed(seq)))
+            to_remove.append(node)
+            DG.remove_edge(n1, node)
+            DG.remove_edge(node, n1)
+            DG.remove_edge(n2, node)
+            DG.remove_edge(node, n2)
+    for node in to_remove:
+        DG.remove_node(node)
+    for s, t, data in DG.edges(data=True):
+        coords = []
+        for node in data['nnodes']:
+            coords.append((G.node[node]['x'], G.node[node]['y']))
+        ls = LineString(coords)
+        data['geom'] = ls
+        data['length'] = ls.length
+    for node, data in DG.nodes(data=True):
+        data['geom'] = Point(G.node[node]['x'], G.node[node]['y'])
 
-    for node, data in BG.nodes_iter(data=True):
-        if data['nnodes'] > 1:
-            current = data['graph'].nodes()[0]
-            successors = nx.dfs_successors(data['graph'], current)
-            sequence = [current]
-            queue = []
-            while current in successors or queue:
-                if current in successors:
-                    queue += successors[current]
-                current = queue[0]
-                if current in data['graph'][sequence[-1]]:
-                    sequence.append(current)
-                else:
-                    sequence.insert(0, current)
-                queue = queue[1:]
-
-            startNode = None
-            endNode = None
-            for terminal in BG[node]:
-                d = BG.node[terminal]
-                if d['graph'].nodes()[0] in G[sequence[0]]:
-                    startNode = terminal
-                if d['graph'].nodes()[0] in G[sequence[-1]]:
-                    endNode = terminal
-                    # sequence.insert(0, d['graph'].nodes()[0])
-            coords = [[G.node[n]['x'], G.node[n]['y']] for n in sequence]
-            line = LineString(coords).simplify(0.1)
-            if startNode:
-                line = line.difference(BG.node[startNode]['geom'].buffer(1))
-            if endNode:
-                line = line.difference(BG.node[endNode]['geom'].buffer(1))
-            data['geom'] = line
-            data['start'] = startNode
-            data['end'] = endNode
-            if line.length < 7:
-                to_remove.append(node)
-            else:
-                lines.append(line)
-                ids.append(node)
-    BG.remove_nodes_from(to_remove)
-
-    return BG
+    return DG
