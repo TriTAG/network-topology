@@ -1,3 +1,4 @@
+"""Module for creating a simplified graph from a set of linestrings."""
 
 import networkx as nx
 from triangle import triangulate
@@ -8,11 +9,11 @@ from itertools import combinations
 import numpy as np
 import random
 from rtree import index
-from pprint import pprint
 
 
 def getNetworkTopology(lineStrings, thickness=14.0, splitAtTeriminals=False,
                        turnThreshold=20.0, minInnerPerimeter=200):
+    """Generate a bidirectional graph of the topology created by the lines."""
     # Make buffered shape
     big_shape = _makeBufferedShape(lineStrings, thickness, minInnerPerimeter)
     triangles = _triangulate(big_shape, lineStrings, minInnerPerimeter)
@@ -22,7 +23,8 @@ def getNetworkTopology(lineStrings, thickness=14.0, splitAtTeriminals=False,
     skel_graph = _buildSkeletonGraph(poly_graph, triangles, polygons)
     if splitAtTeriminals:
         _insertAtTerminals(skel_graph, lineStrings)
-    graph = _simplifyGraph(skel_graph, turnThreshold)  #_findSegmentsAndIntersections(skel_graph, turnThreshold)
+    graph = _simplifyGraph(skel_graph, turnThreshold)
+    # _findSegmentsAndIntersections(skel_graph, turnThreshold)
     return graph
 
 
@@ -30,12 +32,12 @@ def _makeBufferedShape(lineStrings, thickness=14.0, minInnerPerimeter=200):
     bufferedShapes = []
     buf = thickness / 2.0
     for ls in lineStrings:
-        bufferedShapes.append(ls.buffer(buf, resolution=2, join_style=2))  # cap_style=3
+        bufferedShapes.append(ls.buffer(buf, resolution=2, join_style=3))
     big_shape = cascaded_union(bufferedShapes)
     filled_shape = Polygon(big_shape.exterior.coords,
                            [ring.coords for ring in big_shape.interiors
                             if ring.length > minInnerPerimeter])
-    return filled_shape.simplify(thickness/10.0)  # prep(filled_shape.buffer(-0.1))
+    return filled_shape.simplify(thickness/10.0)
 
 
 def _triangulate(big_shape, lineStrings, minInnerPerimeter=200):
@@ -85,7 +87,7 @@ def _triangulate(big_shape, lineStrings, minInnerPerimeter=200):
 
 
 def _polygonize(res, big_shape):
-    prepped_shape = prep(big_shape.buffer(-0.1, cap_style=3, join_style=2))
+    prepped_shape = prep(big_shape.buffer(-0.1))
     polys = [list(vs) for vs in res['triangles']]
     for v, (x, y) in enumerate(res['vertices']):
         # remove any point that is internal to the shape, merging triangles
@@ -103,6 +105,8 @@ def _polygonize(res, big_shape):
                     if vs[0] != v and last_pt != v:
                         shape_graph.add_edge(last_pt, vs[0])
             poly = []
+            if not shape_graph.nodes():
+                continue
             pt = shape_graph.nodes()[0]
             while pt not in poly:
                 poly.append(pt)
@@ -180,7 +184,8 @@ def _tidyIntersections(TG, res, polys):
     for node in TG.nodes_iter():
         if TG.degree(node) == 3 and len(polys[node]) == 3:
             points = res['vertices'][polys[node]]
-            A = np.array([[p[0]*p[0] + p[1]*p[1], p[0], p[1], 1] for p in points])
+            A = np.array([[p[0]*p[0] + p[1]*p[1], p[0], p[1], 1]
+                          for p in points])
             M11 = np.linalg.det(A[:, [1, 2, 3]])
             M12 = np.linalg.det(A[:, [0, 2, 3]])
             M13 = np.linalg.det(A[:, [0, 1, 3]])
@@ -305,7 +310,7 @@ def _simplifyGraph(G, turnThreshold=20.0):
             DG.add_edge(node, neighbour, nnodes=[node, neighbour])
     to_remove = []
     for node in DG.nodes_iter():
-        if len(DG.edges(node)) == 2 and not DG.node[node]['turn']:
+        if len(DG.edges(node)) == 2 and not DG.node[node]['turn'] and node not in DG.neighbors(node):
             (x, n1), (x, n2) = DG.edges(node)
             seq = DG[n1][node][0]['nnodes'] + DG[node][n2][0]['nnodes'][1:]
             DG.add_edge(n1, n2, nnodes=seq)
@@ -321,7 +326,9 @@ def _simplifyGraph(G, turnThreshold=20.0):
         coords = []
         for node in data['nnodes']:
             coords.append((G.node[node]['x'], G.node[node]['y']))
-        data['geom'] = LineString(coords)
+        ls = LineString(coords)
+        data['geom'] = ls
+        data['length'] = ls.length
     for node, data in DG.nodes(data=True):
         data['geom'] = Point(G.node[node]['x'], G.node[node]['y'])
 
