@@ -2,14 +2,13 @@
 
 import networkx as nx
 from triangle import triangulate
-from shapely.geometry import LineString, Point, Polygon
+from shapely.geometry import LineString, Point, Polygon, MultiPolygon
 from shapely.prepared import prep
 from shapely.ops import cascaded_union
 from itertools import combinations
 import numpy as np
 import random
 from rtree import index
-
 
 def getNetworkTopology(lineStrings, thickness=14.0, splitAtTeriminals=False,
                        turnThreshold=20.0, minInnerPerimeter=200):
@@ -34,10 +33,16 @@ def _makeBufferedShape(lineStrings, thickness=14.0, minInnerPerimeter=200):
     for ls in lineStrings:
         bufferedShapes.append(ls.buffer(buf, resolution=2, join_style=3))
     big_shape = cascaded_union(bufferedShapes)
-    filled_shape = Polygon(big_shape.exterior.coords,
-                           [ring.coords for ring in big_shape.interiors
-                            if ring.length > minInnerPerimeter])
-    return filled_shape.simplify(thickness/10.0)
+    if big_shape.geom_type == 'MultiPolygon':
+        filled_shape = MultiPolygon([[g.exterior.coords,
+                                     [ring.coords for ring in g.interiors
+                                      if ring.length > minInnerPerimeter]]
+                                     for g in big_shape.geoms])
+    else:
+        filled_shape = Polygon(big_shape.exterior.coords,
+                               [ring.coords for ring in big_shape.interiors
+                                if ring.length > minInnerPerimeter])
+    return filled_shape.simplify(thickness/10.0)  # prep(filled_shape.buffer(-0.1))
 
 
 def _triangulate(big_shape, lineStrings, minInnerPerimeter=200):
@@ -46,36 +51,41 @@ def _triangulate(big_shape, lineStrings, minInnerPerimeter=200):
         'segments': []
         }
     lastIndex = 0
-    tri['vertices'].append(list(big_shape.exterior.coords[0]))
-    for x, y in big_shape.exterior.coords[1:]:
-        if [x, y] in tri['vertices']:
-            currentIndex = tri['vertices'].index([x, y])
-        else:
-            currentIndex = len(tri['vertices'])
-            tri['vertices'].append([x, y])
-        tri['segments'].append([lastIndex, currentIndex])
-        lastIndex = currentIndex
+    if big_shape.geom_type == 'MultiPolygon':
+        geoms = big_shape.geoms
+    else:
+        geoms = [big_shape]
+    for shape in geoms:
+        tri['vertices'].append(list(shape.exterior.coords[0]))
+        for x, y in shape.exterior.coords[1:]:
+            if [x, y] in tri['vertices']:
+                currentIndex = tri['vertices'].index([x, y])
+            else:
+                currentIndex = len(tri['vertices'])
+                tri['vertices'].append([x, y])
+            tri['segments'].append([lastIndex, currentIndex])
+            lastIndex = currentIndex
 
-    if big_shape.interiors:
-        tri['holes'] = []
-    for ring in big_shape.interiors:
-        if ring.length > minInnerPerimeter:
-            x, y = 0, 0
-            minx, miny, maxx, maxy = ring.bounds
-            while not Polygon(ring).contains(Point(x, y)):
-                x = random.uniform(minx, maxx)
-                y = random.uniform(miny, maxy)
-            tri['holes'].append([x, y])
-            lastIndex = len(tri['vertices'])
-            tri['vertices'].append(list(ring.coords[0]))
-            for x, y in ring.coords[1:]:
-                if [x, y] in tri['vertices']:
-                    currentIndex = tri['vertices'].index([x, y])
-                else:
-                    currentIndex = len(tri['vertices'])
-                    tri['vertices'].append([x, y])
-                tri['segments'].append([lastIndex, currentIndex])
-                lastIndex = currentIndex
+        if shape.interiors:
+            tri['holes'] = []
+        for ring in shape.interiors:
+            if ring.length > minInnerPerimeter:
+                x, y = 0, 0
+                minx, miny, maxx, maxy = ring.bounds
+                while not Polygon(ring).contains(Point(x, y)):
+                    x = random.uniform(minx, maxx)
+                    y = random.uniform(miny, maxy)
+                tri['holes'].append([x, y])
+                lastIndex = len(tri['vertices'])
+                tri['vertices'].append(list(ring.coords[0]))
+                for x, y in ring.coords[1:]:
+                    if [x, y] in tri['vertices']:
+                        currentIndex = tri['vertices'].index([x, y])
+                    else:
+                        currentIndex = len(tri['vertices'])
+                        tri['vertices'].append([x, y])
+                    tri['segments'].append([lastIndex, currentIndex])
+                    lastIndex = currentIndex
 
     for ls in lineStrings:
         for i in [0, -1]:
@@ -104,17 +114,16 @@ def _polygonize(res, big_shape):
                         last_pt = pt
                     if vs[0] != v and last_pt != v:
                         shape_graph.add_edge(last_pt, vs[0])
-            poly = []
-            if not shape_graph.nodes():
+            if len(shape_graph) == 0:
                 continue
-            pt = shape_graph.nodes()[0]
+            poly = []
+            pt = shape_graph.nodes().keys()[0]
             while pt not in poly:
                 poly.append(pt)
-                neighbours = shape_graph.neighbors(pt)
-                if neighbours[0] not in poly:
-                    pt = neighbours[0]
-                elif neighbours[1] not in poly:
-                    pt = neighbours[1]
+                for neighbour in shape_graph.neighbors(pt):
+                    if neighbour not in poly:
+                        pt = neighbour
+                        break
             polys.append(poly)
             polys = [p for i, p in enumerate(polys) if i not in affected_polys]
     return polys
@@ -123,6 +132,8 @@ def _polygonize(res, big_shape):
 def _mergeShapes(cluster, TG, polys):
     combined_graph = nx.Graph()
     for shape in cluster:
+        if len(polys[shape]) == 0:
+            continue
         for p1, p2 in zip(polys[shape], polys[shape][1:] + [polys[shape][0]]):
             if combined_graph.has_edge(p1, p2):
                 combined_graph.remove_edge(p1, p2)
@@ -133,23 +144,23 @@ def _mergeShapes(cluster, TG, polys):
             else:
                 combined_graph.add_edge(p1, p2)
     poly = []
-    pt = combined_graph.nodes()[0]
+    pt = combined_graph.nodes().keys()[0]
     while pt not in poly:
         poly.append(pt)
-        neighbours = combined_graph.neighbors(pt)
-        if neighbours[0] not in poly:
-            pt = neighbours[0]
-        elif neighbours[1] not in poly:
-            pt = neighbours[1]
+        for neighbour in combined_graph.neighbors(pt):
+            if neighbour not in poly:
+                pt = neighbour
+                break
     cluster = list(cluster)
     base = cluster[0]
     polys[base] = poly
     for shape in cluster[1:]:
         polys[shape] = []
-        for n, d in TG[shape].iteritems():
-            if n != base:
-                TG.add_edge(base, n, **d)
-        TG.remove_node(shape)
+        if shape in TG:
+            for n, d in TG[shape].iteritems():
+                if n != base:
+                    TG.add_edge(base, n, **d)
+            TG.remove_node(shape)
 
 
 def _buildInitialGraph(polys):
@@ -171,8 +182,15 @@ def _buildInitialGraph(polys):
 
     # Collapse internal edges
     central_shapes = [t for t in TG.nodes() if len(TG[t]) > 2]
-
-    for cluster in nx.connected_components(TG.subgraph(central_shapes)):
+    SG = TG.subgraph(central_shapes)
+    seen = set()
+    clusters = []
+    for n in SG:
+        if n not in seen:
+            c = nx.bfs_tree(SG, n).nodes()
+            clusters.append(c)
+            seen.update(c)
+    for cluster in clusters:
         _mergeShapes(cluster, TG, polys)
 
     return TG
@@ -181,7 +199,7 @@ def _buildInitialGraph(polys):
 def _tidyIntersections(TG, res, polys):
     # 'Tyding T-intersections...'
     toMerge = []
-    for node in TG.nodes_iter():
+    for node in TG.nodes():
         if TG.degree(node) == 3 and len(polys[node]) == 3:
             points = res['vertices'][polys[node]]
             A = np.array([[p[0]*p[0] + p[1]*p[1], p[0], p[1], 1]
@@ -247,14 +265,14 @@ def _insertEdge(G, n1, n2):
 def _buildSkeletonGraph(TG, res, polys):
     node_idx = index.Index()
     G = nx.Graph(index=node_idx)
-    for t1, t2, d in TG.edges_iter(data=True):
+    for t1, t2, d in TG.edges(data=True):
         x = (res['vertices'][d['v1']][0] + res['vertices'][d['v2']][0])/2.0
         y = (res['vertices'][d['v1']][1] + res['vertices'][d['v2']][1])/2.0
         key = _makeKey(t1, t2)
         node_idx.insert(key, (x, y, x, y))
         G.add_node(key, x=x, y=y)
 
-    for t, d in TG.nodes_iter(data=True):
+    for t, d in TG.nodes(data=True):
         if len(TG[t]) == 2:
             pairs = []
             for t2 in TG[t]:
@@ -266,11 +284,17 @@ def _buildSkeletonGraph(TG, res, polys):
         else:  # if len(TG[t]) != 2:
             if 'centroid' in TG.node[t]:
                 x, y = TG.node[t]['centroid']
-            else:
+            elif len(polys[t]) > 2:
                 # calc centroid & add to graph
                 poly = Polygon([list(res['vertices'][v])
                                 for v in polys[t]])
                 x, y = poly.centroid.coords[0]
+            else:
+                x, y = zip([list(res['vertices'][v])
+                            for v in polys[t]])
+                x = sum(x)/len(x)
+                y = sum(y)/len(y)
+
 
             G.add_node(t, x=x, y=y)
             node_idx.insert(t, [x, y, x, y])
@@ -295,7 +319,7 @@ def _insertAtTerminals(G, lineStrings):
 def _simplifyGraph(G, turnThreshold=20.0):
     DG = nx.MultiDiGraph()
     threshold = np.cos(turnThreshold/180.0*np.pi)
-    for node in G.nodes_iter():
+    for node in G.nodes():
         if node not in DG:
             DG.add_node(node)
         if len(G[node]) == 2:
@@ -309,7 +333,7 @@ def _simplifyGraph(G, turnThreshold=20.0):
         for neighbour in G[node]:
             DG.add_edge(node, neighbour, nnodes=[node, neighbour])
     to_remove = []
-    for node in DG.nodes_iter():
+    for node in DG.nodes():
         if len(DG.edges(node)) == 2 and not DG.node[node]['turn'] and node not in DG.neighbors(node):
             (x, n1), (x, n2) = DG.edges(node)
             seq = DG[n1][node][0]['nnodes'] + DG[node][n2][0]['nnodes'][1:]

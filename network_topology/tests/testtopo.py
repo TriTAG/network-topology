@@ -21,8 +21,8 @@ class FullTestCase(unittest.TestCase):
 
     def test_P(self):
         ntP = getNetworkTopology(self.P, turnThreshold=30, thickness=10, minInnerPerimeter=1)
-        self.assertEqual(len(ntP), 4, 'incorrect number of nodes')
-        self.assertEqual(len(ntP.edges()), 8, 'incorrect number of edges')
+        self.assertEqual(len(ntP), 5, 'incorrect number of nodes')
+        self.assertEqual(len(ntP.edges()), 10, 'incorrect number of edges')
 
     def setUp(self):
         self.P = [LineString([[0, 0], [0, 100]]),

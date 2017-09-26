@@ -183,10 +183,10 @@ class Candidate:
                                         weight='length')
             edgeSequence = []
             for u, v in zip(sequence[:-1], sequence[1:]):
-                i = min(self.DG.edge[u][v],
-                        key=lambda x: self.DG.edge[u][v][x]['length'])
+                i = min(self.DG[u][v],
+                        key=lambda x: self.DG[u][v][x]['length'])
                 edgeSequence.append((u, v, i))
-                sumDistance += self.DG.edge[u][v][i]['length']
+                sumDistance += self.DG[u][v][i]['length']
             cache[index] = sumDistance, edgeSequence
         return sumDistance + terminalDistance, len(edgeSequence) + 1
 
