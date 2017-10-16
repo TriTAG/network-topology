@@ -1,4 +1,6 @@
 
 *.pyc
 
-dist/network-topology-*.tar.gz
+dist/*
+
+network_topology.egg-info/*
