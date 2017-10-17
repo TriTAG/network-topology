@@ -1,5 +1,0 @@
-shapely
-triangle
-networkx
-numpy
-rtree
