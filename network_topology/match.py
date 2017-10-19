@@ -156,14 +156,17 @@ def _construct_path(predecessor, s, t, DG, increment):
     sequence = [(u, v, i) for u, v, i in sequence if not DG[u][v][i]['terminal']]
 
     duplicates = []
-    for s1, s2 in zip(sequence[:-1], sequence[1:]):
+    lastIndex = -10
+    for i, (s1, s2) in enumerate(zip(sequence[:-1], sequence[1:])):
+        if i == lastIndex:
+            continue
         if s1[0] == s2[1] and s1[2] == s2[2]:
-            print s1, s2, DG[s1[0]][s1[1]][s1[2]]['geom'].length
             if DG[s1[0]][s1[1]][s1[2]]['geom'].length < increment*2.:
-                duplicates.append(s1)
-                duplicates.append(s2)
+                duplicates.append(i)
+                duplicates.append(i+1)
+                lastIndex = i + 1
 
-    return [p for p in sequence if p not in duplicates]
+    return [p for i, p in enumerate(sequence) if i not in duplicates]
 
 
 def _distanceBetweenNodes(G, a, b):
