@@ -161,7 +161,7 @@ def _construct_path(predecessor, s, t, DG, increment):
         if i == lastIndex:
             continue
         if s1[0] == s2[1] and s1[2] == s2[2]:
-            if DG[s1[0]][s1[1]][s1[2]]['geom'].length < increment*2.:
+            if DG[s1[0]][s1[1]][s1[2]]['geom'].length < increment*4.:
                 duplicates.append(i)
                 duplicates.append(i+1)
                 lastIndex = i + 1
