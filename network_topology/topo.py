@@ -248,15 +248,17 @@ def _tidyIntersections(TG, res, polys):
             y = -0.5 * M13/M11
             r2 = M14/M11 + x*x + y*y
             TG.node[node]['centroid'] = [x, y]
+            centroid = Point(x,y)
 
             for neighbour, data in TG[node].iteritems():
                 points = list(polys[neighbour])
+                poly = Polygon([res['vertices'][p] for p in points])
                 points.remove(data['v1'])
                 points.remove(data['v2'])
                 point = res['vertices'][points[0]]
                 dx = x - point[0]
                 dy = y - point[1]
-                if dx*dx + dy*dy < 4*r2:
+                if dx*dx + dy*dy < 4*r2 or poly.contains(centroid):
                     toMerge.append([node, neighbour])
 
     for cluster in toMerge:
