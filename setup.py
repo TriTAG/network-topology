@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='network-topology',
-      version='0.2.0',
+      version='0.2.1',
       description='Simplify overlapping lines into a single graph',
       url='http://github.com/TriTAG/network-topology',
       author='Mike Boos',
