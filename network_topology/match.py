@@ -453,15 +453,16 @@ class SequenceCache(dict):
             raise KeyError(key)
 
     def add(self, lengths, sequence):
-        s, t = sequence[0][0], sequence[-1][1]
-        dict.__setitem__(self, (s, t), (sum(lengths), sequence))
-        if len(sequence) > 1:
-            s, t = sequence[0][0], sequence[-2][1]
-            if (s, t) not in self:
-                self.add(lengths[:-1], sequence[:-1])
-            s, t = sequence[1][0], sequence[-1][1]
-            if (s, t) not in self:
-                self.add(lengths[1:], sequence[1:])
+        if sequence:
+            s, t = sequence[0][0], sequence[-1][1]
+            dict.__setitem__(self, (s, t), (sum(lengths), sequence))
+            if len(sequence) > 1:
+                s, t = sequence[0][0], sequence[-2][1]
+                if (s, t) not in self:
+                    self.add(lengths[:-1], sequence[:-1])
+                s, t = sequence[1][0], sequence[-1][1]
+                if (s, t) not in self:
+                    self.add(lengths[1:], sequence[1:])
 
     # def __setitem__(self, key, sequence):
     #     dict.__setitem__(self, key, sequence)
