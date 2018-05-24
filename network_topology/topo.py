@@ -27,16 +27,16 @@ def getNetworkTopology(lineStrings, thickness=14.0, splitAtTeriminals=None,
     """Generate a bidirectional graph of the topology created by the lines."""
     # Make buffered shape
     big_shape = _makeBufferedShape(lineStrings, thickness, minInnerPerimeter)
-    if debugFolder:
+    if debugFolder:  # pragma: no cover
         _dumpBigShape(big_shape, debugFolder)
 
     triangles = _triangulate(big_shape, lineStrings, thickness,
                              minInnerPerimeter)
-    if debugFolder:
+    if debugFolder:  # pragma: no cover
         _dumpTriangles(triangles, debugFolder)
 
     polygons = _polygonize(triangles, big_shape)
-    if debugFolder:
+    if debugFolder:  # pragma: no cover
         _dumpPolygons(polygons, triangles, debugFolder)
 
     poly_graph = _buildInitialGraph(polygons)
@@ -248,7 +248,7 @@ def _tidyIntersections(TG, res, polys):
             y = -0.5 * M13/M11
             r2 = M14/M11 + x*x + y*y
             TG.node[node]['centroid'] = [x, y]
-            centroid = Point(x,y)
+            centroid = Point(x, y)
 
             for neighbour, data in TG[node].iteritems():
                 points = list(polys[neighbour])
@@ -260,6 +260,15 @@ def _tidyIntersections(TG, res, polys):
                 dy = y - point[1]
                 if dx*dx + dy*dy < 4*r2 or poly.contains(centroid):
                     toMerge.append([node, neighbour])
+
+        elif TG.degree(node) > 3:
+            points = res['vertices'][polys[node]]
+            psum, xmsum, ymsum, xxsum, yysum, xysum = 0, 0, 0, 0, 0, 0
+            for p1, p2 in zip(points, points[1:] + points[0]):
+                z = np.cross(p1, p2)
+                z12 = p1 + p2
+
+
 
     for cluster in toMerge:
         _mergeShapes(cluster, TG, polys)
@@ -415,7 +424,7 @@ def _simplifyGraph(G, turnThreshold=20.0, simplifyTolerance=0):
     return DG
 
 
-def _dumpBigShape(big_shape, debugFolder):
+def _dumpBigShape(big_shape, debugFolder):  # pragma: no cover
     zone = (int((big_shape.exterior.coords[0][0] + 180)/6) % 60) + 1
     utm17 = pyproj.Proj(proj='utm', zone=zone, ellps='WGS84')
     google = pyproj.Proj(init='epsg:4326')
@@ -424,7 +433,7 @@ def _dumpBigShape(big_shape, debugFolder):
         json.dump(mapping(transform(project, big_shape)), fp)
 
 
-def _dumpTriangles(triangles, debugFolder):
+def _dumpTriangles(triangles, debugFolder):  # pragma: no cover
     zone = (int((triangles['vertices'][0][0] + 180)/6) % 60) + 1
     utm17 = pyproj.Proj(proj='utm', zone=zone, ellps='WGS84')
     features = []
@@ -443,7 +452,7 @@ def _dumpTriangles(triangles, debugFolder):
         json.dump(data, fp)
 
 
-def _dumpPolygons(polygons, triangles, debugFolder):
+def _dumpPolygons(polygons, triangles, debugFolder):  # pragma: no cover
     zone = (int((triangles['vertices'][0][0] + 180)/6) % 60) + 1
     utm17 = pyproj.Proj(proj='utm', zone=zone, ellps='WGS84')
     features = []

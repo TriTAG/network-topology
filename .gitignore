@@ -4,3 +4,7 @@
 dist/*
 
 network_topology.egg-info/*
+
+cover/*
+
+.coverage
