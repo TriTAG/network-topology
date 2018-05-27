@@ -15,10 +15,18 @@ from shapely.ops import transform
 from functools import partial
 import os
 
+from geometry.buffer import BufferMaker
+
 logger = logging.getLogger('network-topology')
 logger.setLevel(logging.INFO)
 ch = logging.StreamHandler()
 logger.addHandler(ch)
+
+
+class NetworkTopology(object):
+
+    def __init__(self):
+        pass
 
 
 def getNetworkTopology(lineStrings, thickness=14.0, splitAtTeriminals=None,
@@ -26,7 +34,8 @@ def getNetworkTopology(lineStrings, thickness=14.0, splitAtTeriminals=None,
                        debugFolder=None):
     """Generate a bidirectional graph of the topology created by the lines."""
     # Make buffered shape
-    big_shape = _makeBufferedShape(lineStrings, thickness, minInnerPerimeter)
+    bufferMaker = BufferMaker()
+    big_shape = bufferMaker.makeBufferedShape(lineStrings, thickness, minInnerPerimeter)
     if debugFolder:  # pragma: no cover
         _dumpBigShape(big_shape, debugFolder)
 
@@ -47,28 +56,6 @@ def getNetworkTopology(lineStrings, thickness=14.0, splitAtTeriminals=None,
     graph = _simplifyGraph(skel_graph, turnThreshold, thickness/100.0)
     # _findSegmentsAndIntersections(skel_graph, turnThreshold)
     return graph
-
-
-def _makeBufferedShape(lineStrings, thickness=14.0, minInnerPerimeter=200):
-    logger.info('Creating buffered shape')
-    bufferedShapes = []
-    buf = thickness / 2.0
-    for ls in lineStrings:
-        bufferedShapes.append(ls.buffer(buf, resolution=2, join_style=3))
-    big_shape = cascaded_union(bufferedShapes)
-    if big_shape.geom_type == 'MultiPolygon':
-        filled_shape = MultiPolygon([[g.exterior.coords,
-                                     [ring.coords for ring in g.interiors
-                                      if ring.length > minInnerPerimeter]]
-                                     for g in big_shape.geoms])
-    else:
-        filled_shape = Polygon(big_shape.exterior.coords,
-                               [ring.coords for ring in big_shape.interiors
-                                if ring.length > minInnerPerimeter])
-    bs = filled_shape.simplify(thickness/10.0)
-    logger.info('Completed buffered shape')
-    return bs
-
 
 def _triangulate(big_shape, lineStrings, thickness=14.0, minInnerPerimeter=200):
     logger.info('Reticulating shape')
