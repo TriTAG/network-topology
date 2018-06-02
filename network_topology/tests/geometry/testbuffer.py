@@ -1,5 +1,5 @@
 import unittest
-from mock import Mock, patch
+from mock import patch
 from network_topology.geometry.buffer import BufferMaker
 from shapely.geometry import LineString, Point, Polygon, MultiPolygon
 

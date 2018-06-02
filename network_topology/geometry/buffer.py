@@ -45,12 +45,16 @@ class BufferMaker(object):
 
     def _removeHoles(self, bigShape, minInnerPerimeter):
         if bigShape.geom_type == 'MultiPolygon':
-            filledShape = MultiPolygon([[g.exterior.coords,
-                                         [ring.coords for ring in g.interiors
-                                          if ring.length > minInnerPerimeter]]
-                                        for g in bigShape.geoms])
+            filledShape = MultiPolygon(
+                [self._polygonWithoutHoles(g, minInnerPerimeter)
+                 for g in bigShape.geoms])
         else:
-            filledShape = Polygon(bigShape.exterior.coords,
-                                  [ring.coords for ring in bigShape.interiors
-                                   if ring.length > minInnerPerimeter])
+            filledShape = self._polygonWithoutHoles(bigShape,
+                                                    minInnerPerimeter)
         return filledShape
+
+    def _polygonWithoutHoles(self, polygon, minInnerPerimeter):
+        return Polygon(polygon.exterior.coords,
+                       [ring.coords
+                        for ring in polygon.interiors
+                        if ring.length > minInnerPerimeter])
