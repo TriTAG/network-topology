@@ -1,5 +1,5 @@
 import unittest
-#from mock import Mock, patch
+# from mock import Mock, patch
 from network_topology.geometry.mesh import Mesh
 
 class MeshTestCase(unittest.TestCase):
