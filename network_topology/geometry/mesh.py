@@ -1,6 +1,8 @@
 """Class to store and manipulate a mesh."""
 
 from collections import defaultdict
+from shapely.geometry import Polygon
+from edgeiterator import EdgeIterator
 
 
 class Mesh(object):
@@ -33,6 +35,10 @@ class Mesh(object):
         """Return coordinates of the given vertex."""
         return self._vertices[nodeId]
 
+    def getShape(self, polyId):
+        """Generate shapely object of the given polygon."""
+        return Polygon([self._vertices[v] for v in self._polygons[polyId]])
+
     def mergePolygons(self, polyIds):
         """Combine adjacent polygons into a single one.
 
@@ -44,9 +50,8 @@ class Mesh(object):
         edges = defaultdict(list)
         for poly in polyIds:
             nodes = self._polygons[poly]
-            for n1, n2 in zip(nodes[:], nodes[1:] + nodes[:1]):
-                n1, n2 = sorted([n1, n2])
-                edges[n1, n2].append(poly)
+            for edge in EdgeIterator(nodes):
+                edges[edge].append(poly)
         neighbours = defaultdict(list)
         for (n1, n2), polys in edges.items():
             if len(polys) == 1:
