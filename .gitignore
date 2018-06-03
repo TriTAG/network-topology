@@ -8,3 +8,5 @@ network_topology.egg-info/*
 cover/*
 
 .coverage
+
+nosetests.json
