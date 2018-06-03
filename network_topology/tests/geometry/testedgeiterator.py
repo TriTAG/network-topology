@@ -1,6 +1,6 @@
 import unittest
-# from mock import Mock, patch
 from network_topology.geometry.edgeiterator import EdgeIterator
+
 
 class EdgeIterTestCase(unittest.TestCase):
     def test_edge_iter(self):

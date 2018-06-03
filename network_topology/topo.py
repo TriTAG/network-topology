@@ -24,18 +24,21 @@ logger.addHandler(ch)
 
 
 class NetworkTopology(object):
-
     def __init__(self):
         pass
 
 
-def getNetworkTopology(lineStrings, thickness=14.0, splitAtTeriminals=None,
-                       turnThreshold=20.0, minInnerPerimeter=200,
+def getNetworkTopology(lineStrings,
+                       thickness=14.0,
+                       splitAtTeriminals=None,
+                       turnThreshold=20.0,
+                       minInnerPerimeter=200,
                        debugFolder=None):
     """Generate a bidirectional graph of the topology created by the lines."""
     # Make buffered shape
     bufferMaker = BufferMaker()
-    big_shape = bufferMaker.makeBufferedShape(lineStrings, thickness, minInnerPerimeter)
+    big_shape = bufferMaker.makeBufferedShape(lineStrings, thickness,
+                                              minInnerPerimeter)
     if debugFolder:  # pragma: no cover
         _dumpBigShape(big_shape, debugFolder)
 
@@ -53,16 +56,15 @@ def getNetworkTopology(lineStrings, thickness=14.0, splitAtTeriminals=None,
     skel_graph = _buildSkeletonGraph(poly_graph, triangles, polygons)
     if splitAtTeriminals:
         _insertAtTerminals(skel_graph, splitAtTeriminals)
-    graph = _simplifyGraph(skel_graph, turnThreshold, thickness/100.0)
+    graph = _simplifyGraph(skel_graph, turnThreshold, thickness / 100.0)
     # _findSegmentsAndIntersections(skel_graph, turnThreshold)
     return graph
 
-def _triangulate(big_shape, lineStrings, thickness=14.0, minInnerPerimeter=200):
+
+def _triangulate(big_shape, lineStrings, thickness=14.0,
+                 minInnerPerimeter=200):
     logger.info('Reticulating shape')
-    tri = {
-        'vertices': [],
-        'segments': []
-        }
+    tri = {'vertices': [], 'segments': []}
     if big_shape.geom_type == 'MultiPolygon':
         geoms = big_shape.geoms
     else:
@@ -134,9 +136,10 @@ def _polygonize(res, big_shape):
     for cluster in list(nx.connected_components(connectivity_graph)):
         shape_graph = nx.Graph()
         for tri in cluster:
-            for v1, v2 in zip(res['triangles'][tri],
-                              list(res['triangles'][tri][1:]) +
-                              [res['triangles'][tri][0]]):
+            for v1, v2 in zip(
+                    res['triangles'][tri],
+                    list(res['triangles'][tri][1:]) +
+                [res['triangles'][tri][0]]):
                 if v1 not in interior_pts and v2 not in interior_pts:
                     shape_graph.add_edge(v1, v2)
 
@@ -149,8 +152,10 @@ def _polygonize(res, big_shape):
                     pt = neighbour
                     break
         polys.append(poly)
-    remaining_triangles = [list(vs) for i, vs in enumerate(res['triangles'])
-                           if i not in connectivity_graph]
+    remaining_triangles = [
+        list(vs) for i, vs in enumerate(res['triangles'])
+        if i not in connectivity_graph
+    ]
     return remaining_triangles + polys
 
 
@@ -225,15 +230,15 @@ def _tidyIntersections(TG, res, polys):
     for node in TG.nodes():
         if TG.degree(node) == 3 and len(polys[node]) == 3:
             points = res['vertices'][polys[node]]
-            A = np.array([[p[0]*p[0] + p[1]*p[1], p[0], p[1], 1]
-                          for p in points])
+            A = np.array(
+                [[p[0] * p[0] + p[1] * p[1], p[0], p[1], 1] for p in points])
             M11 = np.linalg.det(A[:, [1, 2, 3]])
             M12 = np.linalg.det(A[:, [0, 2, 3]])
             M13 = np.linalg.det(A[:, [0, 1, 3]])
             M14 = np.linalg.det(A[:, [0, 1, 2]])
-            x = 0.5 * M12/M11
-            y = -0.5 * M13/M11
-            r2 = M14/M11 + x*x + y*y
+            x = 0.5 * M12 / M11
+            y = -0.5 * M13 / M11
+            r2 = M14 / M11 + x * x + y * y
             TG.node[node]['centroid'] = [x, y]
             centroid = Point(x, y)
 
@@ -245,7 +250,7 @@ def _tidyIntersections(TG, res, polys):
                 point = res['vertices'][points[0]]
                 dx = x - point[0]
                 dy = y - point[1]
-                if dx*dx + dy*dy < 4*r2 or poly.contains(centroid):
+                if dx * dx + dy * dy < 4 * r2 or poly.contains(centroid):
                     toMerge.append([node, neighbour])
 
         elif TG.degree(node) > 3:
@@ -254,8 +259,6 @@ def _tidyIntersections(TG, res, polys):
             for p1, p2 in zip(points, points[1:] + points[0]):
                 z = np.cross(p1, p2)
                 z12 = p1 + p2
-
-
 
     for cluster in toMerge:
         _mergeShapes(cluster, TG, polys)
@@ -284,7 +287,7 @@ def _makeKey(t1, t2):
 def _normalVector(G, n1, n2):
     ux = G.node[n1]['x'] - G.node[n2]['x']
     uy = G.node[n1]['y'] - G.node[n2]['y']
-    dist = max(np.sqrt(ux*ux + uy*uy), 1e-18)
+    dist = max(np.sqrt(ux * ux + uy * uy), 1e-18)
     ux /= dist
     uy /= dist
     return ux, uy
@@ -302,8 +305,8 @@ def _buildSkeletonGraph(TG, res, polys):
     node_idx = index.Index()
     G = nx.Graph(index=node_idx)
     for t1, t2, d in TG.edges(data=True):
-        x = (res['vertices'][d['v1']][0] + res['vertices'][d['v2']][0])/2.0
-        y = (res['vertices'][d['v1']][1] + res['vertices'][d['v2']][1])/2.0
+        x = (res['vertices'][d['v1']][0] + res['vertices'][d['v2']][0]) / 2.0
+        y = (res['vertices'][d['v1']][1] + res['vertices'][d['v2']][1]) / 2.0
         key = _makeKey(t1, t2)
         node_idx.insert(key, (x, y, x, y))
         G.add_node(key, x=x, y=y)
@@ -322,14 +325,12 @@ def _buildSkeletonGraph(TG, res, polys):
                 x, y = TG.node[t]['centroid']
             elif len(polys[t]) > 2:
                 # calc centroid & add to graph
-                poly = Polygon([list(res['vertices'][v])
-                                for v in polys[t]])
+                poly = Polygon([list(res['vertices'][v]) for v in polys[t]])
                 x, y = poly.centroid.coords[0]
             else:
-                x, y = zip(*[list(res['vertices'][v])
-                             for v in polys[t]])
-                x = sum(x)/len(x)
-                y = sum(y)/len(y)
+                x, y = zip(*[list(res['vertices'][v]) for v in polys[t]])
+                x = sum(x) / len(x)
+                y = sum(y) / len(y)
 
             G.add_node(t, x=x, y=y)
             node_idx.insert(t, [x, y, x, y])
@@ -349,9 +350,9 @@ def _insertAtTerminals(G, points):
     #    for i in [0, -1]:
     #        point = ls.coords[i]
     for i, point in enumerate(points):
-            nearest = list(node_idx.nearest(point.bounds, num_results=1))[0]
-            pid = -float(i) #-float(lid) + 0.1 * i
-            terminals.append((pid, point, nearest))
+        nearest = list(node_idx.nearest(point.bounds, num_results=1))[0]
+        pid = -float(i)  #-float(lid) + 0.1 * i
+        terminals.append((pid, point, nearest))
     for pid, point, nearest in terminals:
         G.add_node(pid, x=point.x, y=point.y, terminal=True)
         _insertEdge(G, pid, nearest, terminal=True)
@@ -360,7 +361,7 @@ def _insertAtTerminals(G, points):
 def _simplifyGraph(G, turnThreshold=20.0, simplifyTolerance=0):
     logger.info('Simplifying graph')
     DG = nx.MultiDiGraph()
-    threshold = np.cos(turnThreshold/180.0*np.pi)
+    threshold = np.cos(turnThreshold / 180.0 * np.pi)
     for node in G.nodes():
         if node not in DG:
             DG.add_node(node, x=G.node[node]['x'], y=G.node[node]['y'])
@@ -372,17 +373,23 @@ def _simplifyGraph(G, turnThreshold=20.0, simplifyTolerance=0):
             for neighbour in G[node]:
                 n = _normalVector(G, node, neighbour)
                 normals.append(n)
-            dp = -(normals[0][0] * normals[1][0] +
-                   normals[0][1] * normals[1][1])
+            dp = -(
+                normals[0][0] * normals[1][0] + normals[0][1] * normals[1][1])
             DG.node[node]['turn'] = dp < threshold
         if 'terminal' in G.node[node]:
             DG.node[node]['terminal'] = True
         for neighbour in G[node]:
-            DG.add_edge(node, neighbour, nnodes=[node, neighbour],
-                        terminal=G[node][neighbour]['terminal'])
+            DG.add_edge(
+                node,
+                neighbour,
+                nnodes=[node, neighbour],
+                terminal=G[node][neighbour]['terminal'])
     to_remove = []
     for node in DG.nodes():
-        if len(DG.edges(node)) == 2 and not DG.node[node]['turn'] and node not in DG.neighbors(node):
+        if len(
+                DG.edges(node)
+        ) == 2 and not DG.node[node]['turn'] and node not in DG.neighbors(
+                node):
             (x, n1), (x, n2) = DG.edges(node)
             if DG[node][n1][0]['terminal'] or DG[node][n2][0]['terminal']:
                 continue
@@ -412,7 +419,7 @@ def _simplifyGraph(G, turnThreshold=20.0, simplifyTolerance=0):
 
 
 def _dumpBigShape(big_shape, debugFolder):  # pragma: no cover
-    zone = (int((big_shape.exterior.coords[0][0] + 180)/6) % 60) + 1
+    zone = (int((big_shape.exterior.coords[0][0] + 180) / 6) % 60) + 1
     utm17 = pyproj.Proj(proj='utm', zone=zone, ellps='WGS84')
     google = pyproj.Proj(init='epsg:4326')
     project = partial(pyproj.transform, utm17, google)
@@ -421,40 +428,48 @@ def _dumpBigShape(big_shape, debugFolder):  # pragma: no cover
 
 
 def _dumpTriangles(triangles, debugFolder):  # pragma: no cover
-    zone = (int((triangles['vertices'][0][0] + 180)/6) % 60) + 1
+    zone = (int((triangles['vertices'][0][0] + 180) / 6) % 60) + 1
     utm17 = pyproj.Proj(proj='utm', zone=zone, ellps='WGS84')
     features = []
     for vs in triangles['triangles']:
-        coord_list = [list(utm17(inverse=True,
-                                 *triangles['vertices'][v])) for v in vs]
-        features.append({"type": "Feature",
-                         "properties": {'stroke-opacity': 0.25},
-                         "geometry": {
-                            "type": "Polygon",
-                            "coordinates": [coord_list]
-                         }})
-    data = {"type": "FeatureCollection",
-            "features": features}
+        coord_list = [
+            list(utm17(inverse=True, *triangles['vertices'][v])) for v in vs
+        ]
+        features.append({
+            "type": "Feature",
+            "properties": {
+                'stroke-opacity': 0.25
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [coord_list]
+            }
+        })
+    data = {"type": "FeatureCollection", "features": features}
     with open(os.path.join(debugFolder, 'triangles.geojson'), 'w') as fp:
         json.dump(data, fp)
 
 
 def _dumpPolygons(polygons, triangles, debugFolder):  # pragma: no cover
-    zone = (int((triangles['vertices'][0][0] + 180)/6) % 60) + 1
+    zone = (int((triangles['vertices'][0][0] + 180) / 6) % 60) + 1
     utm17 = pyproj.Proj(proj='utm', zone=zone, ellps='WGS84')
     features = []
     for vs in polygons:
-        coord_list = [list(utm17(inverse=True,
-                      *triangles['vertices'][v])) for v in vs]
+        coord_list = [
+            list(utm17(inverse=True, *triangles['vertices'][v])) for v in vs
+        ]
         if not coord_list:
             continue
-        features.append({"type": "Feature",
-                         "properties": {'stroke-opacity': 0.25},
-                         "geometry": {
-                            "type": "Polygon",
-                            "coordinates": [coord_list]
-                         }})
-    data = {"type": "FeatureCollection",
-            "features": features}
+        features.append({
+            "type": "Feature",
+            "properties": {
+                'stroke-opacity': 0.25
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [coord_list]
+            }
+        })
+    data = {"type": "FeatureCollection", "features": features}
     with open(os.path.join(debugFolder, 'polygons.geojson'), 'w') as fp:
         json.dump(data, fp)
