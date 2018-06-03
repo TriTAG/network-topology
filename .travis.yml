@@ -5,6 +5,7 @@ addons:
   apt:
     packages:
       - libgeos-dev
+      - libspatialindex-dev
 install:
   - pip install .
 script: nosetests
