@@ -1,6 +1,8 @@
 # network-topology
 Simplifies overlapping lines into a single graph
 
+[![Build Status](https://travis-ci.org/TriTAG/network-topology.svg?branch=master)](https://travis-ci.org/TriTAG/network-topology)
+
 ## Usage
 ```python
 import network_topology
