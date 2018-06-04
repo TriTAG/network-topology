@@ -9,4 +9,4 @@ addons:
 install:
   - pip install .
 script:
-  - nosetests  --with-coverage
+  - nosetests --with-cover --cover-package network_topology
