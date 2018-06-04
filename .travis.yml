@@ -10,3 +10,10 @@ install:
   - pip install .
 script:
   - nosetests --with-cover --cover-package network_topology
+deploy:
+  provider: pypi
+  user: "mboos"
+  password:
+    secure: "KfhiVCiRQZv6VH6YW4ZqvTX7JKBRmA3uH+wILAoAeFTSMi+nSF4bS24W7AGbVXUbSRYJ2N7wDAb6dI4JH0MvA9+3mZdqHtJRHJqgZcc/XBH0Rue74setKK9M4prNH25TOCy0edLRR+n1XO+Wyh6Tyrb8g+eF/ds+/sno703iVGSUxP0bhDl2EXwqeDTBAQrnQs5WlT/vsKS4/6oeZNRLiPiIZQdN5mYyfK56rpFezINeelrxm4qXU7dWwO6H5OIj1Exn+hZO1VeuGKUw+JF9PfzrDkg5x7i+hYInO1clhH8cezEA90oVrWXOqhQJhP5EQwpmf/jU991j7yTUn4xcpikjgkzlWmOXfFyXSDQQbLOBU28vBL/qNXcX89BYhE9G0VdSpB/p30VlpmEUt3dhURI7qi9f0WgtkeUHWrjCrpY7JQF0sdPA1yd0NN7RBWMJJHwZySUC9suwoiRhGxQEM9rC2a4wTnNLc/KxS+1W5+e1xudfy/ixT6L8uxVTTlNUdE13l869+hrE0PF/E1Kh9ANxyAoFgASEEjEVOfoKl9b8MjgxaNswO9qGzSMMqvl+G2YijGMj5zmkoi3j4C/DUl7zC085NYc5gSDZltl9g5dqP7JrYO6ix7L6pwMth/JXIt0+7HKRqa2kDPAe+VW6Nz2W1h5O+gSwbGNhlB7ToVE="
+  on:
+    tags: true
