@@ -6,7 +6,7 @@ import math
 class GeometryProcessor(object):
     """Class for processing geometric functions."""
 
-    def areaCentroidMoments(self, polygon):
+    def centroidMoments(self, polygon):
         """Compute the area, centroid, and moment components of a polygon."""
         psum, xmsum, ymsum = 0, 0, 0
         xxsum, yysum, xysum = 0, 0, 0
@@ -28,17 +28,14 @@ class GeometryProcessor(object):
         area = abs(psum)/2.
         cx = xmsum/(6.*area)
         cy = ymsum/(6.*area)
-        sxx = xxsum/12.
-        syy = yysum/12.
-        sxy = -xysum/24.
-        return area, (cx, cy), (sxx, syy, sxy)
+        sxx = xxsum/12. - cy*cy*area
+        syy = yysum/12. - cx*cx*area
+        sxy = -xysum/24. + cx*cy*area
+        return (sxx, syy, sxy)
 
     def principalAxis(self, polygon):
         """Compute the principal axis and aspect ratio of a polygon."""
-        area, (cx, cy), (sxx, syy, sxy) = self.areaCentroidMoments(polygon)
-        sxx -= cy * cy * area
-        syy -= cx * cx * area
-        sxy += cx * cy * area
+        (sxx, syy, sxy) = self.centroidMoments(polygon)
         sc = sxx + syy
         sxx /= sc
         syy /= sc

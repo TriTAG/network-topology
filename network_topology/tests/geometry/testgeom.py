@@ -12,15 +12,13 @@ class GeometryTestCase(unittest.TestCase):
         """Set up GeometryProcessor."""
         self._gp = GeometryProcessor()
 
-    def test_square_area(self):
+    def test_square_moments(self):
         """Test area and moment are correctly calculated for a square."""
         poly = Polygon([[0, 0], [1, 0], [1, 1], [0, 1]])
-        A, C, M = self._gp.areaCentroidMoments(poly)
-        mxx = 1/12. + 0.25
-        mxy = - 0.25
-        self.assertEqual(A, 1)
-        self.assertSequenceEqual(C, [0.5, 0.5])
-        self.assertSequenceEqual(M, [mxx, mxx, mxy])
+        Mxx, Myy, Mxy = self._gp.centroidMoments(poly)
+        self.assertAlmostEqual(Mxx, 1/12.)
+        self.assertAlmostEqual(Myy, 1/12.)
+        self.assertAlmostEqual(Mxy, 0)
 
     def test_rect_axes_horiz(self):
         """Test principal axes for a horizontal rectangle."""
