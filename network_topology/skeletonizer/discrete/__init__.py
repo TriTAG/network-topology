@@ -1,6 +1,5 @@
 """Interface for discretizing geometery to get skeleton."""
 from network_topology.skeletonizer.mesh import Mesher
-from abstract import AbsDiscretizer, AbsDiscreteGeometry
 from null import NullDiscretizer
 
 __all__ = ['DiscretizerFactory']
