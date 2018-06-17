@@ -29,8 +29,9 @@ class BufferMaker(object):
             removed
         """
         self._logger.info('Creating buffered shape')
-        bufferedShapes = self._bufferShapes(lineStrings, thickness)
-        bigShape = cascaded_union(bufferedShapes)
+        combined_lines = cascaded_union(lineStrings)
+        buf = thickness / 2.0
+        bigShape = combined_lines.buffer(buf, resolution=2, join_style=3)
         filledShape = self._removeHoles(bigShape, minInnerPerimeter)
         bs = filledShape.simplify(thickness/10.0)
         self._logger.info('Completed buffered shape')

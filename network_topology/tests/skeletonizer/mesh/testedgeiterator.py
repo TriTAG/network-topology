@@ -1,6 +1,6 @@
 """Tests for EdgeIterator class."""
 import unittest
-from network_topology.geometry.edgeiterator import EdgeIterator
+from network_topology.skeletonizer.mesh.edgeiterator import EdgeIterator
 
 
 class EdgeIterTestCase(unittest.TestCase):

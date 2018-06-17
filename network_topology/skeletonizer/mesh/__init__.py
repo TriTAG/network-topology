@@ -1,23 +1,26 @@
 """Module for building meshes out of shapes."""
-import logging
 import random
 import networkx as nx
 from collections import defaultdict
 from mesh import Mesh
+from network_topology.skeletonizer.discrete.abstract import AbsDiscretizer
 from edgeiterator import EdgeIterator
 from shapely.geometry import Point, Polygon
 from triangle import triangulate
 
+__all__ = ['Mesher']
 
-class MeshBuilder(object):
+
+class Mesher(AbsDiscretizer):
     """Class to build meshes."""
 
     def __init__(self):
         """Constructor for MeshBuilder."""
-        self._logger = logging.getLogger('network-topology')
+        # self._logger = logging.getLogger('network-topology')
         self._vertices = []
         self._segments = []
         self._holes = []
+        super(Mesher, self).__init__()
 
     def addShape(self, shape):
         """Add a shape to include in the mesh."""
@@ -58,12 +61,12 @@ class MeshBuilder(object):
             y = random.uniform(miny, maxy)
         self._holes.append([x, y])
 
-    def buildMesh(self, thickness):
+    def discretize(self, tolerance):
         """Construct and return a Mesh from the given geometry."""
         tri = {'vertices': self._vertices,
                'segments': self._segments,
                'holes': self._holes}
-        tri = triangulate(tri, 'pq0Da{}i'.format(thickness**2.0))
+        tri = triangulate(tri, 'pq0Da{}i'.format(tolerance**2.0))
         graph = self._buildGraph(tri['triangles'])
         mesh = Mesh(tri['vertices'], tri['vertex_markers'],
                     graph)

@@ -1,12 +1,14 @@
 """Class to store and manipulate a mesh."""
 
+from network_topology.skeletonizer.discrete.abstract import AbsDiscreteGeometry
 import networkx as nx
 from collections import defaultdict
+from itertools import count
 from shapely.geometry import Polygon
 from edgeiterator import EdgeIterator
 
 
-class Mesh(object):
+class Mesh(AbsDiscreteGeometry):
     """Class to store and manipulate a mesh."""
 
     def __init__(self, vertices, edge_nodes, graph):
@@ -27,6 +29,7 @@ class Mesh(object):
         """
         self._vertices = vertices
         self._graph = graph
+        self._count = count(len(graph))
         self._edge_nodes = edge_nodes
 
     def polygons(self):
@@ -98,3 +101,7 @@ class Mesh(object):
                     nodes.append(neighbour)
                     current = neighbour
         self._graph.nodes[base]['vertices'] = nodes
+
+    def skeletonize(self):
+        """Generate a SkeletonGraph of the geometry."""
+        pass

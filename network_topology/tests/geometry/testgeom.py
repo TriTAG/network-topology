@@ -1,6 +1,5 @@
 """Tests for EdgeIterator class."""
 import unittest
-import math
 from network_topology.geometry.geomath import GeometryProcessor
 from shapely.geometry import Polygon
 
