@@ -1,7 +1,7 @@
 import unittest
 from mock import Mock
 from network_topology.skeletonizer.mesh import Mesher
-from shapely.geometry import Polygon, MultiPolygon, LinearRing, Point, LineString
+from shapely.geometry import Polygon, MultiPolygon, Point, LineString
 
 
 class MesherTestCase(unittest.TestCase):
@@ -33,15 +33,15 @@ class MesherTestCase(unittest.TestCase):
 
     def test_add_ring(self):
         mb = Mesher()
-        ring = LinearRing([[0, 0], [1, 0], [1, 1]])
-        mb._addRing(ring)
+        ring = Polygon([[0, 0], [1, 0], [1, 1]])
+        mb._addRing(ring.exterior)
         self.assertEqual(len(mb._vertices), 3)
         self.assertEqual(len(mb._segments), 3)
 
     def test_add_hole(self):
         mb = Mesher()
-        ring = LinearRing([[0, 0], [1, 0], [1, 1]])
-        mb._addHole(ring)
+        ring = Polygon([[0, 0], [1, 0], [1, 1]])
+        mb._addHole(ring.exterior)
         self.assertEqual(len(mb._vertices), 3)
         self.assertEqual(len(mb._segments), 3)
         point = Point(mb._holes[-1])
