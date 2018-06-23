@@ -64,8 +64,9 @@ class Mesher(AbsDiscretizer):
     def discretize(self, tolerance):
         """Construct and return a Mesh from the given geometry."""
         tri = {'vertices': self._vertices,
-               'segments': self._segments,
-               'holes': self._holes}
+               'segments': self._segments}
+        if self._holes:
+            tri['holes'] = self._holes
         tri = triangulate(tri, 'pq0Da{}i'.format(tolerance**2.0))
         graph = self._buildGraph(tri['triangles'])
         mesh = Mesh(tri['vertices'], tri['vertex_markers'],

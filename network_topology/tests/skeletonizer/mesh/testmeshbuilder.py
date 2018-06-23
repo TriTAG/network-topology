@@ -6,6 +6,7 @@ from shapely.geometry import Polygon, MultiPolygon, Point, LineString
 
 class MesherTestCase(unittest.TestCase):
     def test_add_polygon(self):
+        """Test adding a polygon to the mesher."""
         mb = Mesher()
         mb._addRing = Mock()
         mb._addHole = Mock()
@@ -14,6 +15,7 @@ class MesherTestCase(unittest.TestCase):
         mb._addHole.assert_not_called()
 
     def test_add_polygon_with_hole(self):
+        """Test adding a polygon with a hole to the mesher."""
         mb = Mesher()
         mb._addRing = Mock()
         mb._addHole = Mock()
@@ -24,6 +26,7 @@ class MesherTestCase(unittest.TestCase):
         mb._addHole.assert_called_once()
 
     def test_add_multi_polygon(self):
+        """Test adding a MultiPolygon to the mesher."""
         mb = Mesher()
         mb._addRing = Mock()
         mb.addShape(
@@ -32,6 +35,7 @@ class MesherTestCase(unittest.TestCase):
         self.assertEqual(mb._addRing.call_count, 2)
 
     def test_add_ring(self):
+        """Test adding a linear ring to the mesher."""
         mb = Mesher()
         ring = Polygon([[0, 0], [1, 0], [1, 1]])
         mb._addRing(ring.exterior)
@@ -39,6 +43,7 @@ class MesherTestCase(unittest.TestCase):
         self.assertEqual(len(mb._segments), 3)
 
     def test_add_hole(self):
+        """Test adding a hole to the mesher."""
         mb = Mesher()
         ring = Polygon([[0, 0], [1, 0], [1, 1]])
         mb._addHole(ring.exterior)
@@ -48,6 +53,7 @@ class MesherTestCase(unittest.TestCase):
         self.assertTrue(Polygon(ring).contains(point))
 
     def test_add_endpoints(self):
+        """Test adding endpoints ot the mesher."""
         mb = Mesher()
         lines = [LineString([[0, 0], [1, 1]]),
                  LineString([[0, 0], [0, 1]])]
@@ -55,6 +61,7 @@ class MesherTestCase(unittest.TestCase):
         self.assertEqual(len(mb._vertices), 3)
 
     def test_build_graph(self):
+        """Test building a graph out of a set of polygons."""
         mb = Mesher()
         polys = [[0, 1, 2], [1, 2, 3], [0, 2, 3]]
         graph = mb._buildGraph(polys)
@@ -63,4 +70,18 @@ class MesherTestCase(unittest.TestCase):
             self.assertEqual(len(graph[i]), 2)
 
     def test_discretize(self):
-        pass
+        """Test discretizing a simple shape."""
+        mb = Mesher()
+        ring = Polygon([[0, 0], [1, 0], [1, 1]])
+        mb.addShape(ring)
+        mesh = mb.discretize(tolerance=1)
+        self.assertEqual(len(mesh._graph), 1)
+
+    def test_discretize_hole(self):
+        """Test discretizing a simple shape with a hole."""
+        mb = Mesher()
+        ring = Polygon([[0, 0], [1, 0], [1, 1]],
+                       [[[0.25, 0.25], [0.75, 0.25], [0.75, 0.75]]])
+        mb.addShape(ring)
+        mesh = mb.discretize(tolerance=1)
+        self.assertEqual(len(mesh._graph), 6)
