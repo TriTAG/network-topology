@@ -39,3 +39,19 @@ class GeometryTestCase(unittest.TestCase):
         (dx, dy), R = self._gp.principalAxis(poly)
         self.assertEqual(R, 2)
         self.assertAlmostEqual(dx, dy)
+
+    def test_diamond(self):
+        """Test moments of inertia for a diamond."""
+        poly = Polygon([[0, 0], [2, 1], [0, 2], [-2, 1]])
+        Mxx, Myy, Mxy = self._gp.centroidMoments(poly)
+        self.assertAlmostEqual(Mxx, 2/3.)
+        self.assertAlmostEqual(Myy, 8/3.)
+        self.assertAlmostEqual(Mxy, 0)
+
+    def test_diamond_extra(self):
+        """Test moments of inertia for a diamond."""
+        poly = Polygon([[0, 0], [1, 0.5], [2, 1], [0, 2], [-1, 1.5], [-2, 1]])
+        Mxx, Myy, Mxy = self._gp.centroidMoments(poly)
+        self.assertAlmostEqual(Mxx, 2/3.)
+        self.assertAlmostEqual(Myy, 8/3.)
+        self.assertAlmostEqual(Mxy, 0)
