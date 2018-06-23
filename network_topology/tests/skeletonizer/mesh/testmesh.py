@@ -3,6 +3,7 @@ import unittest
 # from mock import Mock, patch
 import networkx as nx
 from network_topology.skeletonizer.mesh.mesh import Mesh
+from network_topology.geometry.geomath import GeometryProcessor
 
 
 class MeshTestCase(unittest.TestCase):
@@ -67,3 +68,74 @@ class MeshTestCase(unittest.TestCase):
         """Test probing vertex coordinates."""
         vertex = self.mesh.getVertex(0)
         self.assertSequenceEqual(vertex, [0, 0])
+
+
+class MeshSplitter(unittest.TestCase):
+    """Tests for splitting long polygons."""
+
+    def setUp(self):
+        """Set up graph for test case."""
+
+    def test_get_half(self):
+        """Test splitting polygon into two by nodes."""
+        mesh = Mesh([], [], nx.Graph())
+        loop = {0: 1, 1: 2, 2: 3, 3: 0}
+        half = mesh._getHalf(1, 3, loop)
+        self.assertListEqual(half, [1, 2, 3])
+
+    def test_get_half_adj(self):
+        """Test splitting polygon into two by nodes."""
+        mesh = Mesh([], [], nx.Graph())
+        loop = {0: 1, 1: 2, 2: 3, 3: 0}
+        half = mesh._getHalf(1, 0, loop)
+        self.assertListEqual(half, [1, 2, 3, 0])
+
+    def _diamondCase(self):
+        graph = nx.Graph()
+        graph.add_node(0, vertices=[0, 1, 2, 3, 4, 5])
+        mesh = Mesh([[0, 0], [1, 0.5], [2, 1], [0, 2], [-1, 1.5], [-2, 1]],
+                    [], graph)
+        gp = GeometryProcessor()
+        return mesh, gp
+
+    def test_find_split_nodes(self):
+        """Test correct nodes idenfied for splitting of polygon."""
+        mesh, gp = self._diamondCase()
+        top, bottom = mesh._findSplitNodes(0, 1, 0, gp)
+        self.assertEqual(top, 0)
+        self.assertEqual(bottom, 3)
+
+    def test_split_poly(self):
+        """Test polygon is split correctly."""
+        mesh, _ = self._diamondCase()
+        mesh._splitPoly(0, 0, 3)
+        self.assertEqual(len(mesh._graph), 2)
+        self.assertEqual(len(mesh._graph.edges), 1)
+
+    def _diamondNeighboursCase(self):
+        graph = nx.Graph()
+        graph.add_node(0, vertices=[0, 1, 2, 3, 4, 5])
+        graph.add_node(1, vertices=[0, 1, 6])
+        graph.add_node(2, vertices=[1, 2, 7])
+        graph.add_node(3, vertices=[0, 5, 8, 9])
+        graph.add_edge(0, 1, common=(0, 1))
+        graph.add_edge(0, 2, common=(1, 2))
+        graph.add_edge(0, 3, common=(0, 5))
+        mesh = Mesh([[0, 0], [1, 0.5], [2, 1], [0, 2], [-1, 1.5], [-2, 1],
+                     [1, 0], [1.5, 1], [-2, 0], [-1, -2]],
+                    [], graph)
+        return mesh
+
+    def test_split_shapes(self):
+        """Test polygon is split correctly."""
+        mesh = self._diamondNeighboursCase()
+        mesh.splitShapes()
+        self.assertEqual(len(mesh._graph[0]), 2)
+        self.assertEqual(len(mesh._graph[4]), 3)
+
+    def test_split_poly_neighbours(self):
+        """Test polygon is split correctly."""
+        mesh = self._diamondNeighboursCase()
+        mesh._splitPoly(0, 0, 3)
+        self.assertEqual(len(mesh._graph[0]), 3)
+        self.assertEqual(len(mesh._graph[4]), 2)

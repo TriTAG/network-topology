@@ -1,6 +1,7 @@
 """Class to store and manipulate a mesh."""
 
 from network_topology.skeletonizer.discrete.abstract import AbsDiscreteGeometry
+from network_topology.geometry.geomath import GeometryProcessor
 import networkx as nx
 from collections import defaultdict
 from itertools import count
@@ -101,6 +102,66 @@ class Mesh(AbsDiscreteGeometry):
                     nodes.append(neighbour)
                     current = neighbour
         self._graph.nodes[base]['vertices'] = nodes
+
+    def splitShapes(self, cutoffRatio=1.618):
+        """Divide any shape that has an aspect ratio above the cutoff."""
+        geometryProcessor = GeometryProcessor()
+        for poly, data in self._graph.nodes(data=True):
+            if len(data['vertices']) > 3:
+                shape = self.getShape(poly)
+                (px, py), ratio = geometryProcessor.principalAxis(shape)
+                print px, py, poly
+                if ratio > cutoffRatio:
+                    top, bottom = self._findSplitNodes(poly, px, py,
+                                                       geometryProcessor)
+                    self._splitPoly(poly, top, bottom)
+
+    def _splitPoly(self, polyId, top, bottom):
+        """Divide a shape along the principal axis."""
+        nodes = self._graph.nodes[polyId]['vertices']
+        loop = {a: b for (a, b) in EdgeIterator(nodes, sort=False)}
+        firstHalf = self._getHalf(top, bottom, loop)
+        secondHalf = self._getHalf(bottom, top, loop)
+        if len(firstHalf) > 2 and len(secondHalf) > 2:
+            secondPoly = self._count.next()
+            n1, n2 = sorted((top, bottom))
+            self._graph.add_edge(polyId, secondPoly, common=(n1, n2))
+            self._graph.node[polyId]['vertices'] = firstHalf
+            self._graph.node[secondPoly]['vertices'] = secondHalf
+            for neighbour, data in self._graph[polyId].items():
+                n1, n2 = data['common']
+                if n1 not in firstHalf or n2 not in firstHalf:
+                    self._graph.add_edge(secondPoly, neighbour, **data)
+                    self._graph.remove_edge(polyId, neighbour)
+
+    def _findSplitNodes(self, polyId, px, py, geometryProcessor):
+        """Determine which pair of nodes to split the polygon with."""
+        shape = self.getShape(polyId)
+        nearestTop, lowestTop = None, 1
+        nearestBottom, lowestBottom = None, 1
+        for v in self._graph.nodes[polyId]['vertices']:
+            dx, dy = self.getVertex(v)
+            dx -= shape.centroid.x
+            dy -= shape.centroid.y
+            dx, dy = geometryProcessor.normalize(dx, dy)
+            dotProd = dx*px + dy*py
+            crossProd = dx*py - dy*px
+            if crossProd > 0:
+                if abs(dotProd) < lowestTop:
+                    lowestTop = abs(dotProd)
+                    nearestTop = v
+            elif abs(dotProd) < lowestBottom:
+                lowestBottom = abs(dotProd)
+                nearestBottom = v
+        return nearestTop, nearestBottom
+
+    def _getHalf(self, startNode, endNode, loop):
+        half = [startNode]
+        current = startNode
+        while current != endNode:
+            current = loop[current]
+            half.append(current)
+        return half
 
     def skeletonize(self):
         """Generate a SkeletonGraph of the geometry."""
