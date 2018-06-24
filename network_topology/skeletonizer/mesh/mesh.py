@@ -163,6 +163,6 @@ class Mesh(AbsDiscreteGeometry):
             half.append(current)
         return half
 
-    def skeletonize(self):
+    def skeletonize(self, splitAtEndpoints):
         """Generate a SkeletonGraph of the geometry."""
         pass

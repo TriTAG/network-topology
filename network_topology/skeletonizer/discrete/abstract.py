@@ -30,5 +30,5 @@ class AbsDiscreteGeometry(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def skeletonize(self):
+    def skeletonize(self, splitAtEndpoints):
         """Generate a SkeletonGraph of the geometry."""

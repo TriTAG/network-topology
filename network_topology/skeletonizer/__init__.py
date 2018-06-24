@@ -13,7 +13,8 @@ class SkeletonizingStrategy(TopologyStrategy):
         self._bufferMaker = bufferMaker or BufferMaker()
         super(SkeletonizingStrategy, self).__init__()
 
-    def buildTopology(self, lineStrings=[], tolerance=0):
+    def buildTopology(self, lineStrings=[], tolerance=0,
+                      splitAtEndpoints=True):
         """Contstruct a topology out of the linestrings."""
         shape = self._bufferMaker.makeBufferedShape(
             lineStrings,
@@ -23,4 +24,4 @@ class SkeletonizingStrategy(TopologyStrategy):
         discretizer.addShape(shape)
         discretizer.addEndpoints(lineStrings)
         discGeometry = discretizer.discretize(tolerance)
-        return discGeometry.skeletonize()
+        return discGeometry.skeletonize(splitAtEndpoints=splitAtEndpoints)

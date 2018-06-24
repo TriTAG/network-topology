@@ -1,3 +1,4 @@
+"""Tests for the mesher."""
 import unittest
 from mock import Mock
 from network_topology.skeletonizer.mesh import Mesher
@@ -5,6 +6,8 @@ from shapely.geometry import Polygon, MultiPolygon, Point, LineString
 
 
 class MesherTestCase(unittest.TestCase):
+    """Tests for the mesher."""
+
     def test_add_polygon(self):
         """Test adding a polygon to the mesher."""
         mb = Mesher()

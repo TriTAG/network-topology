@@ -13,5 +13,6 @@ class TopologyStrategy(object):
         self._logger = logging.getLogger('network-topology')
 
     @abstractmethod
-    def buildTopology(self, lineStrings=[], tolerance=0):
+    def buildTopology(self, lineStrings=[], tolerance=0,
+                      splitAtEndpoints=True):
         """Contstruct a topology out of the linestrings."""
