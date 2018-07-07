@@ -1,3 +1,5 @@
+"""Interface for discretizing geometry to make a skeleton."""
+
 from abc import ABCMeta, abstractmethod
 import logging
 

@@ -145,6 +145,7 @@ class MeshMergeTest(unittest.TestCase):
     """Test case for internal elements."""
 
     def test_find_polygons_to_merge(self):
+        """Test finding internal polygons."""
         graph = nx.Graph()
         graph.add_node(0, vertices=[0, 1, 2])
         graph.add_node(1, vertices=[0, 1, 3])
