@@ -10,6 +10,7 @@ class TopologyTestCase(unittest.TestCase):
     """Test of topology."""
 
     def test_path(self):
+        """Test finding the shortest path."""
         graph = nx.MultiDiGraph()
         nodes = [Point(0, 0), Point(1, 1), Point(1, 2), Point(0, 2),
                  Point(1, 0)]
@@ -22,6 +23,7 @@ class TopologyTestCase(unittest.TestCase):
         self.assertSequenceEqual(distances, [math.sqrt(2), 1])
 
     def test_no_path(self):
+        """Test if no path can be found between source and destination."""
         graph = nx.MultiDiGraph()
         nodes = [Point(0, 0), Point(1, 1)]
         graph.add_node(0)
@@ -32,18 +34,21 @@ class TopologyTestCase(unittest.TestCase):
         self.assertSequenceEqual(distances, [float('inf')])
 
     def test_add_edge(self):
+        """Test adding an edge."""
         topo = Topology()
         topo.addEdge(LineString([[0, 0], [1, 1], [1, 2]]))
         topo.addEdge(LineString([[2, 2], [1, 2]]))
         self.assertEqual(len(topo._graph.nodes), 3)
 
     def test_get_edge(self):
+        """Test retrieving an edge."""
         graph = nx.MultiDiGraph()
         graph.add_edge(0, 1, geom=LineString([[0, 0], [0, 1]]))
         topo = Topology(graph=graph)
         self.assertEqual(topo.getEdge(0, 1, 0).length, 1)
 
     def test_get_candidates(self):
+        """Test getting candidate segments near a point."""
         topo = Topology()
         topo.addEdge(LineString([[0, 0], [1, 1], [1, 2]]))
         topo.addEdge(LineString([[2, 2], [1, 2]]))
