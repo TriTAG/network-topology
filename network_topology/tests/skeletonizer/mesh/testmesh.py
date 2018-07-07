@@ -139,3 +139,26 @@ class MeshSplitter(unittest.TestCase):
         mesh._splitPoly(0, 0, 3)
         self.assertEqual(len(mesh._graph[0]), 3)
         self.assertEqual(len(mesh._graph[4]), 2)
+
+
+class MeshMergeTest(unittest.TestCase):
+    """Test case for internal elements."""
+
+    def test_find_polygons_to_merge(self):
+        graph = nx.Graph()
+        graph.add_node(0, vertices=[0, 1, 2])
+        graph.add_node(1, vertices=[0, 1, 3])
+        graph.add_node(2, vertices=[1, 2, 4])
+        graph.add_node(3, vertices=[0, 2, 5])
+        graph.add_node(4, vertices=[1, 3, 6])
+        graph.add_node(5, vertices=[0, 3, 7])
+        graph.add_edge(0, 1, common=(0, 1))
+        graph.add_edge(0, 2, common=(1, 2))
+        graph.add_edge(0, 3, common=(0, 2))
+        graph.add_edge(1, 4, common=(0, 3))
+        graph.add_edge(1, 5, common=(1, 3))
+        mesh = Mesh([[0, 0], [0, 2], [1, 1], [-1, 1],
+                     [1, 2], [1, 0], [-1, 2], [-1, 0]],
+                    [1, 1, 1, 1, 1, 1, 1, 1], graph)
+        internal = mesh._findPolygonsToMerge()
+        self.assertSequenceEqual(internal, [0, 1])
