@@ -3,9 +3,11 @@
 from network_topology.skeletonizer.discrete.abstract import AbsDiscreteGeometry
 from network_topology.geometry.geomath import GeometryProcessor
 import networkx as nx
+import numpy as np
+from rtree import index
 from collections import defaultdict
-from itertools import count
-from shapely.geometry import Polygon
+from itertools import count, combinations
+from shapely.geometry import Polygon, Point, LineString
 from edgeiterator import EdgeIterator
 
 
@@ -19,14 +21,14 @@ class Mesh(AbsDiscreteGeometry):
         ----------
         vertices : sequence
             A sequence of coordinate sequences
-        polygons : sequence
-            A sequence of vertex index sequences
         edge_nodes:
             A sequence of:
                 1 if coordinate is on an outer edge
                 0 otherwise
         graph:
             A graph represending topological connections between points
+        tolerance:
+
         """
         self._vertices = vertices
         self._graph = graph
@@ -163,6 +165,87 @@ class Mesh(AbsDiscreteGeometry):
             half.append(current)
         return half
 
-    def skeletonize(self, splitAtEndpoints):
+    def skeletonize(self, splitAtEndpoints, topology):
         """Generate a SkeletonGraph of the geometry."""
-        pass
+        # find the midpoints
+        self._calculateMidPoints()
+
+        # calculate projections between midpoints
+        self._calculateProjections()
+
+        # recalculate polygon centroids based on projections from neighbours
+        self._calculateCentroids()
+
+        # create new graph with collapsed edges in both directions
+        self._constructSkeleton(topology)
+
+    def _calculateMidPoints(self):
+        for p1, p2, data in self._graph.edges(data=True):
+            nodes = data['common']
+            centroid = sum(self._vertices[nodes]) * 0.5
+            data['point'] = Point(centroid)
+
+    def _calculateProjections(self):
+        geometryProcessor = GeometryProcessor()
+        for p, data in self._graph.nodes(data=True):
+            data['projections'] = []
+        for p in self._graph.nodes:
+            for nbr1, nbr2 in combinations(self._graph[p], 2):
+                p1 = self._graph[p][nbr1]['point'].xy
+                p2 = self._graph[p][nbr2]['point'].xy
+                vector = p1 - p2
+                normal = np.array(geometryProcessor.normalize(*vector))
+                self._graph.node[nbr1]['projections'].append((p, normal))
+                self._graph.node[nbr2]['projections'].append((p, normal))
+
+    def _calculateCentroids(self):
+        for p, data in self._graph.nodes(data=True):
+            shape = self.getShape(p)
+            length = np.sqrt(shape.area)
+            for nbr, normal in data['projections']:
+                pt = self._graph[p][nbr]['point'].xy
+                p1 = pt + 10. * length * normal
+                p2 = pt - 10. * length * normal
+                line = LineString([p1, p2]).buffer(length/4.)
+                shape = shape.intersection(line)
+            if shape.area == 0:
+                shape = self.getShape(p)
+            self._graph.node[p]['point'] = shape.centroid
+
+    def _constructSkeleton(self, topology):
+        visited = set()
+        for node in self._graph:
+            if len(self._graph[node]) == 2 and node not in visited:
+                subEdge = self._getEdge(node)
+                edge = [self._graph.nodes[node]['point'].coords[0]]
+                for n1, n2 in zip(subEdge[:-1], subEdge[1:]):
+                    edge.append(self._graph[n1][n2]['point'].coords[0])
+                    edge.append(self._graph.nodes[n2]['point'].coords[0])
+                topology.addEdge(edge)
+
+    def _getEdge(self, node):
+        stack = [node]
+        visited = set(node)
+        startNode = None
+        while stack and not startNode:
+            node = stack.pop()
+            for child in self._graph[node]:
+                if child not in visited:
+                    if len(self._graph[child]) == 2:
+                        stack.append(child)
+                    else:
+                        startNode = child
+                        break
+        nodes = [startNode, node]
+        visited = set(nodes)
+        while len(self._graph[nodes[-1]]) == 2:
+            for child in self._graph[nodes[-1]]:
+                if child not in visited:
+                    nodes.append(child)
+        return nodes
+
+    def _makeIndex(self):
+        pointsIdx = index.Index()
+        for i, v in enumerate(self._vertices):
+            pointsIdx.insert(i, list(v)*2)
+        return pointsIdx
