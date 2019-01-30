@@ -19,5 +19,5 @@ class NullDiscretizer(AbsDiscretizer):
 class NullDiscreteGeometry(AbsDiscreteGeometry):
     """Null implementation of discrete geometry."""
 
-    def skeletonize(self, splitAtEndpoints):
+    def skeletonize(self, splitAtEndpoints, topology):
         """Generate a SkeletonGraph of the geometry."""
