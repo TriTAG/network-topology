@@ -7,7 +7,12 @@ class GeometryProcessor(object):
     """Class for processing geometric functions."""
 
     def centroidMoments(self, polygon):
-        """Compute the area, centroid, and moment components of a polygon."""
+        """Compute the area, centroid, and moment components of a polygon.
+
+        Adapted from Tough, J. G., & Miles, R. G. (1984).
+        A method for characterizing polygons in terms of the principal axes.
+        Computers & Geosciences, 10(2-3), 347-350.
+        """
         psum, xmsum, ymsum = 0, 0, 0
         xxsum, yysum, xysum = 0, 0, 0
         if polygon.exterior.is_ccw:
@@ -34,7 +39,12 @@ class GeometryProcessor(object):
         return (sxx, syy, sxy)
 
     def principalAxis(self, polygon):
-        """Compute the principal axis and aspect ratio of a polygon."""
+        """Compute the principal axis and aspect ratio of a polygon.
+
+        Adapted from Tough, J. G., & Miles, R. G. (1984).
+        A method for characterizing polygons in terms of the principal axes.
+        Computers & Geosciences, 10(2-3), 347-350.
+        """
         (sxx, syy, sxy) = self.centroidMoments(polygon)
         sc = sxx + syy
         sxx /= sc
