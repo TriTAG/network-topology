@@ -22,26 +22,30 @@ class Topology(AbstractTopology):
         self._nodes = nodes or []
         self._coordinates = coordinates or {}
 
-    def addEdge(self, lineString):
+    def addEdge(self, points):
         """Add an edge to the topology."""
-        endpoints = self._getNodes(lineString)
+        endpoints = self._getNodes(points)
         for order in [1, -1]:
             self._addOneEdge(endpoints[::order],
-                             LineString(lineString.coords[::order]))
+                             LineString(points[::order]))
 
     def _addOneEdge(self, nodes, lineString):
         u, v = nodes
         i = self._graph.add_edge(u, v, geom=lineString)
         self._index.insert(hash((u, v, i)), lineString.bounds, obj=(u, v, i))
 
-    def _getNodes(self, lineString):
-        return [self._getNodeIndex(lineString.coords[i]) for i in [0, -1]]
+    def _getNodes(self, points):
+        return [self._getNodeIndex(points[i]) for i in [0, -1]]
 
     def _getNodeIndex(self, point):
-        if point not in self._coordinates:
-            self._coordinates[point] = len(self._nodes)
+        point = tuple(point)
+        try:
+            return self._coordinates[point]
+        except KeyError:
+            nodeID = len(self._nodes)
+            self._coordinates[point] = nodeID
             self._nodes.append(Point(point))
-        return self._coordinates[point]
+            return nodeID
 
     def getEdge(self, start, finish, index):
         """Get the geometry for an edge."""
@@ -117,10 +121,10 @@ class Topology(AbstractTopology):
 
         return [], [float('inf')]
 
-    def getCandidateEdges(self, point, tolerance):
+    def getNearbyEdges(self, point, tolerance):
         """Find candidate edges near the point."""
         scope = tolerance * 2.0
-        candidates = []
+        # candidates = set()
         for item in self._index.intersection(
             (point.x - scope, point.y - scope, point.x + scope,
              point.y + scope),
@@ -128,7 +132,7 @@ class Topology(AbstractTopology):
             # We check if the segment is already in the candidate list,
             # allowing the spatial index to contain discretized parts of each
             # segment.
-            if (item.object not in candidates and
+            if (  # item.object not in candidates and
                     point.distance(self.getEdge(*item.object)) < scope):
-                candidates.append(item.object)
-        return candidates
+                # candidates.add(item.object)
+                yield item.object

@@ -36,8 +36,8 @@ class TopologyTestCase(unittest.TestCase):
     def test_add_edge(self):
         """Test adding an edge."""
         topo = Topology()
-        topo.addEdge(LineString([[0, 0], [1, 1], [1, 2]]))
-        topo.addEdge(LineString([[2, 2], [1, 2]]))
+        topo.addEdge([[0, 0], [1, 1], [1, 2]])
+        topo.addEdge([[2, 2], [1, 2]])
         self.assertEqual(len(topo._graph.nodes), 3)
 
     def test_get_edge(self):
@@ -50,7 +50,11 @@ class TopologyTestCase(unittest.TestCase):
     def test_get_candidates(self):
         """Test getting candidate segments near a point."""
         topo = Topology()
-        topo.addEdge(LineString([[0, 0], [1, 1], [1, 2]]))
-        topo.addEdge(LineString([[2, 2], [1, 2]]))
-        candidates = topo.getCandidateEdges(Point(1, 1), 0.1)
+        topo.addEdge([[0, 0], [1, 1], [1, 2]])
+        topo.addEdge([[2, 2], [1, 2]])
+        candidates = topo.getNearbyEdges(Point(1, 1), 0.1)
         self.assertSetEqual(set(candidates), {(0, 1, 0), (1, 0, 0)})
+
+
+if __name__ == '__main__':
+    unittest.main()

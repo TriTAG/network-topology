@@ -21,5 +21,5 @@ class AbstractTopology(object):
         """Find path from source to target nodes."""
 
     @abstractmethod
-    def getCandidateEdges(self, point, tolerance):
+    def getNearbyEdges(self, point, tolerance):
         """Find candidate edges near the point."""
