@@ -2,6 +2,8 @@
 import unittest
 # from mock import Mock, patch
 import networkx as nx
+import numpy as np
+from shapely.geometry import Point
 from network_topology.skeletonizer.mesh.mesh import Mesh
 from network_topology.geometry.geomath import GeometryProcessor
 
@@ -67,7 +69,7 @@ class MeshTestCase(unittest.TestCase):
     def test_get_vertex(self):
         """Test probing vertex coordinates."""
         vertex = self.mesh.getVertex(0)
-        self.assertSequenceEqual(vertex, [0, 0])
+        self.assertSequenceEqual(list(vertex), [0, 0])
 
 
 class MeshSplitter(unittest.TestCase):
@@ -163,3 +165,27 @@ class MeshMergeTest(unittest.TestCase):
                     [1, 1, 1, 1, 1, 1, 1, 1], graph)
         internal = mesh._findPolygonsToMerge()
         self.assertSequenceEqual(internal, [0, 1])
+
+
+class MeshMidPointTest(unittest.TestCase):
+    """Test case for finding midpoints in graph."""
+
+    def setUp(self):
+        """Set up graph."""
+        graph = nx.Graph()
+        graph.add_node(0, vertices=[0, 1, 3])
+        graph.add_node(1, vertices=[1, 2, 3])
+        graph.add_edge(0, 1, common=(1, 3))
+        graph.add_edge(0, 3, common=(0, 3))
+        self.mesh = Mesh([[0, 0], [0, 2], [2, 2], [1, 1]],
+                         [1, 1, 1, 1], graph)
+
+    def test_midpoints(self):
+        """Test finding midpoints."""
+        self.mesh._calculateMidPoints()
+        self.assertEqual(Point(0.5, 0.5),
+                         self.mesh._graph.edges[0, 3]['point'])
+
+
+if __name__ == '__main__':
+    unittest.main()

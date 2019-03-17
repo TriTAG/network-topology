@@ -1,7 +1,7 @@
 """Tests for the mesher."""
 import unittest
 from mock import Mock
-from network_topology.skeletonizer.mesh import Mesher
+from network_topology.skeletonizer.mesh.mesher import Mesher
 from shapely.geometry import Polygon, MultiPolygon, Point, LineString
 
 

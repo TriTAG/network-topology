@@ -2,7 +2,7 @@
 import unittest
 from mock import Mock
 from network_topology.skeletonizer import SkeletonizingStrategy
-from network_topology.skeletonizer.discrete import DiscretizerFactory
+from network_topology.skeletonizer.discrete.factory import DiscretizerFactory
 
 
 class StrategyTestCase(unittest.TestCase):

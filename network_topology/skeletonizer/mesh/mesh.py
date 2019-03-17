@@ -1,6 +1,6 @@
 """Class to store and manipulate a mesh."""
 
-from network_topology.skeletonizer.discrete.abstract import AbsDiscreteGeometry
+from network_topology.skeletonizer.discrete.abstractgeom import AbsDiscreteGeometry
 from network_topology.geometry.geomath import GeometryProcessor
 import networkx as nx
 import numpy as np
@@ -30,10 +30,10 @@ class Mesh(AbsDiscreteGeometry):
         tolerance:
 
         """
-        self._vertices = vertices
+        self._vertices = np.array(vertices)
         self._graph = graph
         self._count = count(len(graph))
-        self._edge_nodes = edge_nodes
+        self._edge_nodes = np.array(edge_nodes)
 
     def polygons(self):
         """Return an iterator of polygon vertex lists."""
@@ -181,7 +181,7 @@ class Mesh(AbsDiscreteGeometry):
 
     def _calculateMidPoints(self):
         for p1, p2, data in self._graph.edges(data=True):
-            nodes = data['common']
+            nodes = list(data['common'])
             centroid = sum(self._vertices[nodes]) * 0.5
             data['point'] = Point(centroid)
 
