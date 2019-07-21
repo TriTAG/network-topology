@@ -15,7 +15,7 @@ from shapely.ops import transform
 from functools import partial
 import os
 
-from geometry.buffer import BufferMaker
+from network_topology.geometry.buffer import BufferMaker
 
 logger = logging.getLogger('network-topology')
 logger.setLevel(logging.INFO)
@@ -144,7 +144,7 @@ def _polygonize(res, big_shape):
                     shape_graph.add_edge(v1, v2)
 
         poly = []
-        pt = shape_graph.nodes().keys()[0]
+        pt = next(iter(shape_graph.nodes().keys()))
         while pt not in poly:
             poly.append(pt)
             for neighbour in shape_graph.neighbors(pt):
@@ -174,7 +174,7 @@ def _mergeShapes(cluster, TG, polys):
             else:
                 combined_graph.add_edge(p1, p2)
     poly = []
-    pt = combined_graph.nodes().keys()[0]
+    pt = next(iter(combined_graph.nodes().keys()))
     while pt not in poly:
         poly.append(pt)
         for neighbour in combined_graph.neighbors(pt):
@@ -187,7 +187,7 @@ def _mergeShapes(cluster, TG, polys):
     for shape in cluster[1:]:
         polys[shape] = []
         if shape in TG:
-            for n, d in TG[shape].iteritems():
+            for n, d in TG[shape].items():
                 if n != base:
                     TG.add_edge(base, n, **d)
             TG.remove_node(shape)
@@ -242,7 +242,7 @@ def _tidyIntersections(TG, res, polys):
             TG.node[node]['centroid'] = [x, y]
             centroid = Point(x, y)
 
-            for neighbour, data in TG[node].iteritems():
+            for neighbour, data in TG[node].items():
                 points = list(polys[neighbour])
                 poly = Polygon([res['vertices'][p] for p in points])
                 points.remove(data['v1'])

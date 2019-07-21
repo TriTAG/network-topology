@@ -1,5 +1,6 @@
 """Null discretizer and discrete geometry representations."""
-from abstract import AbsDiscretizer, AbsDiscreteGeometry
+from .abstractdiscretizer import AbsDiscretizer
+from .abstractgeom import AbsDiscreteGeometry
 
 
 class NullDiscretizer(AbsDiscretizer):

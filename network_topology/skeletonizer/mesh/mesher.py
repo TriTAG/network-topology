@@ -2,9 +2,9 @@
 import random
 import networkx as nx
 from collections import defaultdict
-from mesh import Mesh
-from network_topology.skeletonizer.discrete.abstractdiscretizer import AbsDiscretizer
-from edgeiterator import EdgeIterator
+from .mesh import Mesh
+from ..discrete.abstractdiscretizer import AbsDiscretizer
+from .edgeiterator import EdgeIterator
 from shapely.geometry import Point, Polygon
 from triangle import triangulate
 

@@ -2,7 +2,6 @@
 import unittest
 # from mock import Mock, patch
 import networkx as nx
-import numpy as np
 from shapely.geometry import Point
 from network_topology.skeletonizer.mesh.mesh import Mesh
 from network_topology.geometry.geomath import GeometryProcessor

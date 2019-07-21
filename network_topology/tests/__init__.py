@@ -1,3 +1,3 @@
-import testtopo
-import testmatch
-import testPQ
+from . import testtopo
+from . import testmatch
+from . import testPQ

@@ -1,6 +1,6 @@
 """Null class for topology."""
 
-from abstract import AbstractTopology
+from .abstract import AbstractTopology
 
 
 class NullTopology(AbstractTopology):

@@ -1,7 +1,7 @@
 """Module for creating topologies from linestrings."""
 
-from topology import Topology
-from null import NullTopology
+from .topology import Topology
+from .null import NullTopology
 
 __all__ = ['TopologyFactory']
 

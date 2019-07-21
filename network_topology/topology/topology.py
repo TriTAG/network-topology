@@ -1,6 +1,6 @@
 """Implementation for topology."""
 
-from abstract import AbstractTopology
+from .abstract import AbstractTopology
 import networkx as nx
 from rtree import index
 from itertools import count

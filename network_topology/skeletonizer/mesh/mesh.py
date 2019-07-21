@@ -8,7 +8,7 @@ from rtree import index
 from collections import defaultdict
 from itertools import count, combinations
 from shapely.geometry import Polygon, Point, LineString
-from edgeiterator import EdgeIterator
+from .edgeiterator import EdgeIterator
 
 
 class Mesh(AbsDiscreteGeometry):
@@ -53,7 +53,7 @@ class Mesh(AbsDiscreteGeometry):
         """Merge polygons that are fully internal or have internal nodes."""
         polygons = self._findPolygonsToMerge()
         subgraph = self._graph.subgraph(polygons)
-        for cluster in nx.connected_components(subgraph):
+        for cluster in list(nx.connected_components(subgraph)):
             self._mergeCluster(cluster)
 
     def _findPolygonsToMerge(self):
@@ -95,7 +95,7 @@ class Mesh(AbsDiscreteGeometry):
             if len(polys) == 1:
                 neighbours[n1].append(n2)
                 neighbours[n2].append(n1)
-        current = neighbours.keys()[0]
+        current = next(iter(neighbours.keys()))
         nodes = [current]
         while neighbours[current]:
             for neighbour in neighbours[current]:
@@ -108,11 +108,11 @@ class Mesh(AbsDiscreteGeometry):
     def splitShapes(self, cutoffRatio=1.618):
         """Divide any shape that has an aspect ratio above the cutoff."""
         geometryProcessor = GeometryProcessor()
-        for poly, data in self._graph.nodes(data=True):
+        for poly, data in list(self._graph.nodes(data=True)):
             if len(data['vertices']) > 3:
                 shape = self.getShape(poly)
                 (px, py), ratio = geometryProcessor.principalAxis(shape)
-                print px, py, poly
+                print(px, py, poly)
                 if ratio > cutoffRatio:
                     top, bottom = self._findSplitNodes(poly, px, py,
                                                        geometryProcessor)
@@ -125,12 +125,12 @@ class Mesh(AbsDiscreteGeometry):
         firstHalf = self._getHalf(top, bottom, loop)
         secondHalf = self._getHalf(bottom, top, loop)
         if len(firstHalf) > 2 and len(secondHalf) > 2:
-            secondPoly = self._count.next()
+            secondPoly = next(self._count)
             n1, n2 = sorted((top, bottom))
             self._graph.add_edge(polyId, secondPoly, common=(n1, n2))
             self._graph.node[polyId]['vertices'] = firstHalf
             self._graph.node[secondPoly]['vertices'] = secondHalf
-            for neighbour, data in self._graph[polyId].items():
+            for neighbour, data in dict(self._graph[polyId]).items():
                 n1, n2 = data['common']
                 if n1 not in firstHalf or n2 not in firstHalf:
                     self._graph.add_edge(secondPoly, neighbour, **data)
@@ -225,12 +225,13 @@ class Mesh(AbsDiscreteGeometry):
 
     def _getEdge(self, node):
         stack = [node]
-        visited = set(node)
+        visited = {node}
         startNode = None
-        while stack and not startNode:
+        while stack and startNode is None:
             node = stack.pop()
             for child in self._graph[node]:
                 if child not in visited:
+                    visited.add(child)
                     if len(self._graph[child]) == 2:
                         stack.append(child)
                     else:
@@ -241,6 +242,7 @@ class Mesh(AbsDiscreteGeometry):
         while len(self._graph[nodes[-1]]) == 2:
             for child in self._graph[nodes[-1]]:
                 if child not in visited:
+                    visited.add(child)
                     nodes.append(child)
         return nodes
 

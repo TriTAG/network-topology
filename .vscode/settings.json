@@ -1,0 +1,12 @@
+{
+    "python.testing.nosetestArgs": [
+        "--with-cover",
+        "--cover-package",
+        "network_topology",
+        "--cover-html",
+        "--cover-branches"
+    ],
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": true
+}
