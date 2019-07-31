@@ -2,7 +2,7 @@
 
 from ..topology import Topology
 from .null import NullStrategy
-from ...skeletonizer import SkeletonizingStrategy
+from network_topology.skeletonizer import SkeletonizingStrategy
 
 __all__ = ['StrategyFactory']
 
