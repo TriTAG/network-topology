@@ -10,7 +10,7 @@ setup(
     license='BSD',
     packages=['network_topology'],
     install_requires=[
-        'shapely', 'triangle', 'networkx', 'numpy', 'rtree', 'logging',
+        'shapely', 'triangle', 'networkx', 'numpy', 'rtree',
         'pyproj'
     ],
     test_suite='nose.collector',
