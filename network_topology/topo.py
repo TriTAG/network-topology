@@ -35,6 +35,8 @@ def getNetworkTopology(lineStrings,
                        minInnerPerimeter=200,
                        debugFolder=None):
     """Generate a bidirectional graph of the topology created by the lines."""
+
+    
     # Make buffered shape
     bufferMaker = BufferMaker()
     big_shape = bufferMaker.makeBufferedShape(lineStrings, thickness,
