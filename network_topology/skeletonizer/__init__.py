@@ -1,6 +1,6 @@
 """Module for skeletonizing strategy to create topologies."""
 
-from network_topology.topology.strategy import TopologyStrategy
+from network_topology.topology.strategy.abstract import TopologyStrategy
 from network_topology.geometry.buffer import BufferMaker
 from network_topology.topology import TopologyFactory
 
