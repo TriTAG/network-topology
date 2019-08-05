@@ -1,6 +1,5 @@
 """Module for strategy factory."""
 
-from ..topology import Topology
 from .null import NullStrategy
 from ...skeletonizer import SkeletonizingStrategy
 
@@ -19,6 +18,6 @@ class StrategyFactory(object):
         else:
             self._cls = self._methods.get(method, NullStrategy)
 
-    def getToplogy(self):
+    def getStrategy(self):
         """Return a new discretizer."""
         return self._cls()

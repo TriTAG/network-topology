@@ -2,7 +2,6 @@
 import unittest
 # from mock import Mock, patch
 import networkx as nx
-from shapely.geometry import Point
 from network_topology.skeletonizer.mesh.mesh import Mesh
 from network_topology.geometry.geomath import GeometryProcessor
 
@@ -123,14 +122,14 @@ class MeshSplitter(unittest.TestCase):
         graph.add_edge(0, 2, common=(1, 2))
         graph.add_edge(0, 3, common=(0, 5))
         mesh = Mesh([[0, 0], [1, 0.5], [2, 1], [0, 2], [-1, 1.5], [-2, 1],
-                     [1, 0], [1.5, 1], [-2, 0], [-1, -2]],
+                     [1, 0], [1.5, 0.5], [-2, 0], [-1, -2]],
                     [], graph)
         return mesh
 
     def test_split_shapes(self):
         """Test polygon is split correctly."""
         mesh = self._diamondNeighboursCase()
-        mesh.splitShapes()
+        mesh.splitShapes(cutoffRatio=1.5)
         self.assertEqual(len(mesh._graph[0]), 2)
         self.assertEqual(len(mesh._graph[4]), 3)
 
@@ -182,7 +181,7 @@ class MeshMidPointTest(unittest.TestCase):
     def test_midpoints(self):
         """Test finding midpoints."""
         self.mesh._calculateMidPoints()
-        self.assertEqual(Point(0.5, 0.5),
+        self.assertEqual((0.5, 0.5),
                          self.mesh._graph.edges[0, 3]['point'])
 
 

@@ -1,13 +1,15 @@
 """Class to store and manipulate a mesh."""
 
-from network_topology.skeletonizer.discrete.abstractgeom import AbsDiscreteGeometry
-from network_topology.geometry.geomath import GeometryProcessor
+from ..discrete.abstractgeom import AbsDiscreteGeometry
+from ...geometry.geomath import GeometryProcessor
+from ...geometry.point import Point
 import networkx as nx
 import numpy as np
+import math
 from rtree import index
 from collections import defaultdict
 from itertools import count, combinations
-from shapely.geometry import Polygon, Point, LineString
+from shapely.geometry import Polygon, LineString
 from .edgeiterator import EdgeIterator
 
 
@@ -105,18 +107,23 @@ class Mesh(AbsDiscreteGeometry):
                     current = neighbour
         self._graph.nodes[base]['vertices'] = nodes
 
-    def splitShapes(self, cutoffRatio=1.618):
+    def splitShapes(self, cutoffRatio=2):
         """Divide any shape that has an aspect ratio above the cutoff."""
         geometryProcessor = GeometryProcessor()
-        for poly, data in list(self._graph.nodes(data=True)):
+        stack = list(self._graph.nodes(data=True))
+        #for poly, data in list(self._graph.nodes(data=True)):
+        while stack:
+            poly, data = stack.pop()
             if len(data['vertices']) > 3:
                 shape = self.getShape(poly)
                 (px, py), ratio = geometryProcessor.principalAxis(shape)
-                print(px, py, poly)
                 if ratio > cutoffRatio:
                     top, bottom = self._findSplitNodes(poly, px, py,
                                                        geometryProcessor)
-                    self._splitPoly(poly, top, bottom)
+                    newPoly = self._splitPoly(poly, top, bottom)
+                    if newPoly is not None:
+                        stack.append((poly, data))
+                        stack.append((newPoly, self._graph.node[newPoly]))
 
     def _splitPoly(self, polyId, top, bottom):
         """Divide a shape along the principal axis."""
@@ -124,7 +131,7 @@ class Mesh(AbsDiscreteGeometry):
         loop = {a: b for (a, b) in EdgeIterator(nodes, sort=False)}
         firstHalf = self._getHalf(top, bottom, loop)
         secondHalf = self._getHalf(bottom, top, loop)
-        if len(firstHalf) > 2 and len(secondHalf) > 2:
+        if len(firstHalf) > 3 and len(secondHalf) > 3:
             secondPoly = next(self._count)
             n1, n2 = sorted((top, bottom))
             self._graph.add_edge(polyId, secondPoly, common=(n1, n2))
@@ -135,6 +142,7 @@ class Mesh(AbsDiscreteGeometry):
                 if n1 not in firstHalf or n2 not in firstHalf:
                     self._graph.add_edge(secondPoly, neighbour, **data)
                     self._graph.remove_edge(polyId, neighbour)
+            return secondPoly
 
     def _findSplitNodes(self, polyId, px, py, geometryProcessor):
         """Determine which pair of nodes to split the polygon with."""
@@ -183,44 +191,47 @@ class Mesh(AbsDiscreteGeometry):
         for p1, p2, data in self._graph.edges(data=True):
             nodes = list(data['common'])
             centroid = sum(self._vertices[nodes]) * 0.5
-            data['point'] = Point(centroid)
+            data['point'] = Point(*centroid)
 
     def _calculateProjections(self):
-        geometryProcessor = GeometryProcessor()
         for p, data in self._graph.nodes(data=True):
             data['projections'] = []
         for p in self._graph.nodes:
             for nbr1, nbr2 in combinations(self._graph[p], 2):
-                p1 = self._graph[p][nbr1]['point'].xy
-                p2 = self._graph[p][nbr2]['point'].xy
+                p1 = self._graph[p][nbr1]['point']
+                p2 = self._graph[p][nbr2]['point']
                 vector = p1 - p2
-                normal = np.array(geometryProcessor.normalize(*vector))
+                normal = vector / abs(vector)
                 self._graph.node[nbr1]['projections'].append((p, normal))
                 self._graph.node[nbr2]['projections'].append((p, normal))
 
     def _calculateCentroids(self):
         for p, data in self._graph.nodes(data=True):
             shape = self.getShape(p)
-            length = np.sqrt(shape.area)
+            length = math.sqrt(shape.area)
             for nbr, normal in data['projections']:
-                pt = self._graph[p][nbr]['point'].xy
+                pt = self._graph[p][nbr]['point']
                 p1 = pt + 10. * length * normal
                 p2 = pt - 10. * length * normal
                 line = LineString([p1, p2]).buffer(length/4.)
                 shape = shape.intersection(line)
             if shape.area == 0:
                 shape = self.getShape(p)
-            self._graph.node[p]['point'] = shape.centroid
+            self._graph.node[p]['point'] = Point(shape.centroid.x, shape.centroid.y)
 
     def _constructSkeleton(self, topology):
+        # self._diagnosticPlot()
         visited = set()
         for node in self._graph:
-            if len(self._graph[node]) == 2 and node not in visited:
+            if len(self._graph[node]) in (1, 2) and node not in visited:
                 subEdge = self._getEdge(node)
-                edge = [self._graph.nodes[node]['point'].coords[0]]
+                edge = [self._graph.nodes[subEdge[0]]['point']]
+                visited.add(subEdge[0])
                 for n1, n2 in zip(subEdge[:-1], subEdge[1:]):
-                    edge.append(self._graph[n1][n2]['point'].coords[0])
-                    edge.append(self._graph.nodes[n2]['point'].coords[0])
+                    edge.append(self._graph[n1][n2]['point'])
+                    edge.append(self._graph.nodes[n2]['point'])
+                    visited.add(n1)
+                    visited.add(n2)
                 topology.addEdge(edge)
 
     def _getEdge(self, node):
@@ -241,13 +252,37 @@ class Mesh(AbsDiscreteGeometry):
         visited = set(nodes)
         while len(self._graph[nodes[-1]]) == 2:
             for child in self._graph[nodes[-1]]:
-                if child not in visited:
+                if child != nodes[-2]:
                     visited.add(child)
                     nodes.append(child)
-        return nodes
+                    break
+        return list(reversed(nodes))
 
     def _makeIndex(self):
         pointsIdx = index.Index()
         for i, v in enumerate(self._vertices):
             pointsIdx.insert(i, list(v)*2)
         return pointsIdx
+
+    def _diagnosticPlot(self):
+        from matplotlib.patches import Polygon
+        from matplotlib.collections import PatchCollection
+        import matplotlib.pyplot as plt
+        patches = []
+        labels = []
+        fig, ax = plt.subplots()
+        for node in self._graph:
+            shape = self.getShape(node)
+            labels.append((node, shape.centroid))
+            polygon = Polygon(shape.exterior.coords[:], True)
+            patches.append(polygon)
+
+        p = PatchCollection(patches, alpha=0.4)
+        p.set_edgecolor('black')
+        
+        ax.add_collection(p)
+        for node, centroid in labels:
+            ax.text(centroid.x, centroid.y, str(node), horizontalalignment="center")
+        ax.autoscale()
+
+        plt.show()

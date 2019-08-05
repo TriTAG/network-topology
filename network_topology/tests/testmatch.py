@@ -32,7 +32,6 @@ class MatchTestCase(unittest.TestCase):
         G.add_edge(1, 2, geom=ls1, terminal=False)
         G.add_edge(2, 1, geom=ls2, terminal=False)
         paths = getMatchedRoutes({'a': ls2}, G)
-        print(paths)
         self.assertIn('a', paths, 'path not returned')
         self.assertEqual([(2, 1, 0)], paths['a'], 'incorrect path')
 

@@ -14,6 +14,7 @@ import pyproj
 from shapely.ops import transform
 from functools import partial
 import os
+from .topology.strategy.factory import StrategyFactory
 
 from network_topology.geometry.buffer import BufferMaker
 
@@ -35,8 +36,17 @@ def getNetworkTopology(lineStrings,
                        minInnerPerimeter=200,
                        debugFolder=None):
     """Generate a bidirectional graph of the topology created by the lines."""
+    sfactory = StrategyFactory(method='Skeleton')
 
-    
+    strategy = sfactory.getStrategy()
+
+    topology = strategy.buildTopology(
+        lineStrings=lineStrings,
+        tolerance=thickness,
+        splitAtEndpoints=splitAtTeriminals is not None)
+
+    return topology._graph
+
     # Make buffered shape
     bufferMaker = BufferMaker()
     big_shape = bufferMaker.makeBufferedShape(lineStrings, thickness,

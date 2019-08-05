@@ -6,7 +6,7 @@ class EdgeIterator(object):
 
     def __init__(self, nodes, sort=True):
         """Constructor."""
-        self._nodes = nodes
+        self._nodes = list(nodes)
         self._sort = sort
 
     def __iter__(self):

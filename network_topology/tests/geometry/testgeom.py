@@ -1,4 +1,4 @@
-"""Tests for EdgeIterator class."""
+"""Tests for GeometryProcessor class."""
 import unittest
 from network_topology.geometry.geomath import GeometryProcessor
 from shapely.geometry import Polygon
