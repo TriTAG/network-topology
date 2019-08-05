@@ -2,7 +2,6 @@
 import unittest
 import networkx as nx
 from network_topology.skeletonizer.mesh.mesh import Mesh
-from network_topology.geometry.geomath import GeometryProcessor
 
 
 class GetEdgeTestCase(unittest.TestCase):
@@ -35,7 +34,7 @@ class GetEdgeTestCase(unittest.TestCase):
     def test_mid_node_of_long(self):
         self._long_branch_test(2)
 
-    
+
 class LoopGetEdgeTestCase(unittest.TestCase):
     """Test case for Meshes."""
 

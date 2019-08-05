@@ -12,9 +12,11 @@ class SkeletonizingStrategy(TopologyStrategy):
     def __init__(self, discretizerFactory=None, bufferMaker=None,
                  topologyFactory=None):
         """Constructor for skeletonizing strategy."""
-        self._discretizerFactory = discretizerFactory or DiscretizerFactory(method='Mesh')
+        self._discretizerFactory = (discretizerFactory or
+                                    DiscretizerFactory(method='Mesh'))
         self._bufferMaker = bufferMaker or BufferMaker()
-        self._topologyFactory = topologyFactory or TopologyFactory(method='Topology')
+        self._topologyFactory = (topologyFactory or
+                                 TopologyFactory(method='Topology'))
         super(SkeletonizingStrategy, self).__init__()
 
     def buildTopology(self, lineStrings=[], tolerance=0,

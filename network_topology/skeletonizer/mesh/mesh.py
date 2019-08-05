@@ -111,7 +111,6 @@ class Mesh(AbsDiscreteGeometry):
         """Divide any shape that has an aspect ratio above the cutoff."""
         geometryProcessor = GeometryProcessor()
         stack = list(self._graph.nodes(data=True))
-        #for poly, data in list(self._graph.nodes(data=True)):
         while stack:
             poly, data = stack.pop()
             if len(data['vertices']) > 3:
@@ -217,7 +216,8 @@ class Mesh(AbsDiscreteGeometry):
                 shape = shape.intersection(line)
             if shape.area == 0:
                 shape = self.getShape(p)
-            self._graph.node[p]['point'] = Point(shape.centroid.x, shape.centroid.y)
+            self._graph.node[p]['point'] = Point(shape.centroid.x,
+                                                 shape.centroid.y)
 
     def _constructSkeleton(self, topology):
         # self._diagnosticPlot()
@@ -279,10 +279,11 @@ class Mesh(AbsDiscreteGeometry):
 
         p = PatchCollection(patches, alpha=0.4)
         p.set_edgecolor('black')
-        
+
         ax.add_collection(p)
         for node, centroid in labels:
-            ax.text(centroid.x, centroid.y, str(node), horizontalalignment="center")
+            ax.text(centroid.x, centroid.y, str(node),
+                    horizontalalignment="center")
         ax.autoscale()
 
         plt.show()
