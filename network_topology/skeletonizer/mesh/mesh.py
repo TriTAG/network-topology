@@ -212,7 +212,7 @@ class Mesh(AbsDiscreteGeometry):
                 pt = self._graph[p][nbr]['point']
                 p1 = pt + 10. * length * normal
                 p2 = pt - 10. * length * normal
-                line = LineString([p1, p2]).buffer(length/4.)
+                line = LineString([p1, p2]).buffer(length/8.)
                 shape = shape.intersection(line)
             if shape.area == 0:
                 shape = self.getShape(p)
