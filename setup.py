@@ -9,6 +9,7 @@ setup(
     author_email='mike.boos@tritag.ca',
     license='BSD',
     packages=['network_topology'],
+    package_dir={'network_topology': 'src/network_topology'},
     install_requires=[
         'shapely', 'triangle', 'networkx', 'numpy', 'rtree',
         'pyproj', 'scipy'
