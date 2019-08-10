@@ -89,3 +89,32 @@ class ProjectionTestCase(unittest.TestCase):
                                delta=0.01)
         self.assertAlmostEqual(mesh._graph.node[4]['point'], (-0.5, 0),
                                delta=0.01)
+
+    def test_three_way_corner(self):
+        graph = nx.Graph()
+        graph.add_node(0, vertices=[0, 1, 2],
+                       projections=[(1, Point(-1, 0)), (2, Point(0, 1)),
+                                    (3, Point(1, 0))])
+        graph.add_node(1, vertices=[0, 1, 3],
+                       projections=[(0, Point(0.7071, 0.7071)),
+                                    (0, Point(1, 0))])
+        graph.add_node(2, vertices=[1, 2, 4],
+                       projections=[(0, Point(0.7071, 0.7071)),
+                                    (0, Point(-0.7071, 0.7071))])
+        graph.add_node(3, vertices=[0, 2, 5],
+                       projections=[(0, Point(-0.7071, 0.7071)),
+                                    (0, Point(1, 0))])
+        graph.add_edge(0, 1, common=(0, 1), point=Point(0.5, 0.5))
+        graph.add_edge(0, 2, common=(1, 2), point=Point(0, 0))
+        graph.add_edge(0, 3, common=(0, 2), point=Point(-0.5, 0.5))
+        mesh = Mesh([[0, 1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1]],
+                    [], graph)
+        mesh._calculateCentroids()
+        self.assertAlmostEqual(mesh._graph.node[0]['point'], (0, 0.5),
+                               delta=0.0001)
+        self.assertAlmostEqual(mesh._graph.node[1]['point'], (0.5, 0.5),
+                               delta=0.01)
+        self.assertAlmostEqual(mesh._graph.node[2]['point'], (0, 0),
+                               delta=0.01)
+        self.assertAlmostEqual(mesh._graph.node[3]['point'], (-0.5, 0.5),
+                               delta=0.01)
