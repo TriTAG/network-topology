@@ -6,7 +6,7 @@ from .mesh import Mesh
 from ..discrete.abstractdiscretizer import AbsDiscretizer
 from .edgeiterator import EdgeIterator
 from shapely.geometry import Point, Polygon
-from triangle import triangulate, compare
+from triangle import triangulate
 
 
 class Mesher(AbsDiscretizer):
@@ -67,6 +67,7 @@ class Mesher(AbsDiscretizer):
             tri['holes'] = self._holes
         tri = triangulate(tri, 'pq0Da{}i'.format(tolerance**2.0))
         # import matplotlib.pyplot as plt
+        # from triangle import compare
         # compare(plt, tri, tri)
         # plt.show()
         graph = self._buildGraph(tri['triangles'])

@@ -3,7 +3,7 @@ from network_topology import getNetworkTopology
 from shapely.geometry import LineString
 
 
-@unittest.skip("skip for coverage")
+# @unittest.skip("skip to verify coverage of lower-level tests")
 class FullTestCase(unittest.TestCase):
 
     def test_X(self):

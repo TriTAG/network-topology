@@ -8,9 +8,13 @@ class Point(_point):
 
     def __new__(cls, *args, **kwargs):
         if not kwargs and len(args) == 2:
-            return super().__new__(cls, x=float(args[0]), y=float(args[1]))
+            return super().__new__(cls,
+                                   x=float(args[0]),
+                                   y=float(args[1]))
         elif not args and set(kwargs) == {'x', 'y'}:
-            return super().__new__(cls, x=float(kwargs['x']), y=float(kwargs['y']))
+            return super().__new__(cls,
+                                   x=float(kwargs['x']),
+                                   y=float(kwargs['y']))
         else:
             raise TypeError('Invalid arguments')
 
@@ -53,6 +57,9 @@ class Point(_point):
             return Point(self.x/divisor, self.y/divisor)
         else:
             raise TypeError('Expected float or int.')
+
+    def __matmul__(self, other):
+        return self[0]*other[0] + self[1]*other[1]
 
     def __abs__(self):
         return math.sqrt(self.x**2 + self.y**2)

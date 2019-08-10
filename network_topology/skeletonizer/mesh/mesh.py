@@ -5,11 +5,10 @@ from ...geometry.geomath import GeometryProcessor
 from ...geometry.point import Point
 import networkx as nx
 import numpy as np
-import math
 from rtree import index
 from collections import defaultdict
 from itertools import count, combinations
-from shapely.geometry import Polygon, LineString
+from shapely.geometry import Polygon
 from .edgeiterator import EdgeIterator
 
 
@@ -205,19 +204,36 @@ class Mesh(AbsDiscreteGeometry):
                 self._graph.node[nbr2]['projections'].append((p, normal))
 
     def _calculateCentroids(self):
-        for p, data in self._graph.nodes(data=True):
-            shape = self.getShape(p)
-            length = math.sqrt(shape.area)
+        from scipy.optimize import minimize
+        from shapely.geometry import Point as SPoint
+
+        def min_func(x, data, shape):
+            result = shape.distance(SPoint(x))
             for nbr, normal in data['projections']:
                 pt = self._graph[p][nbr]['point']
-                p1 = pt + 10. * length * normal
-                p2 = pt - 10. * length * normal
-                line = LineString([p1, p2]).buffer(length/8.)
-                shape = shape.intersection(line)
-            if shape.area == 0:
-                shape = self.getShape(p)
-            self._graph.node[p]['point'] = Point(shape.centroid.x,
-                                                 shape.centroid.y)
+                r_vec = (x[0], x[1]) - pt
+                r_norm = r_vec / abs(r_vec)
+                result += np.cross(normal, r_norm) ** 2
+            return result
+
+        for p, data in self._graph.nodes(data=True):
+            shape = self.getShape(p)
+            x0 = np.array(shape.centroid.xy)
+            bounds = shape.bounds
+            res = minimize(min_func, x0, (data, shape),
+                           bounds=((bounds[0], bounds[2]),
+                                   (bounds[1], bounds[3])))
+
+            # length = math.sqrt(shape.area)
+            # for nbr, normal in data['projections']:
+            #     pt = self._graph[p][nbr]['point']
+            #     p1 = pt + 10. * length * normal
+            #     p2 = pt - 10. * length * normal
+            #     line = LineString([p1, p2]).buffer(length/8.)
+            #     shape = shape.intersection(line)
+            # if shape.area == 0:
+            #     shape = self.getShape(p)
+            self._graph.node[p]['point'] = Point(*res.x)
 
     def _constructSkeleton(self, topology):
         # self._diagnosticPlot()
