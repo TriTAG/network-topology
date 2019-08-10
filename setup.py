@@ -11,7 +11,7 @@ setup(
     packages=['network_topology'],
     install_requires=[
         'shapely', 'triangle', 'networkx', 'numpy', 'rtree',
-        'pyproj'
+        'pyproj', 'scipy'
     ],
     test_suite='nose.collector',
     tests_require=['nose'],
